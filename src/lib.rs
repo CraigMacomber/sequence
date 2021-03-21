@@ -1,19 +1,12 @@
-use std::{
-    collections::{
-        hash_map::{self, Keys},
-        HashMap,
-    },
-    ops::Deref,
-    slice,
-};
-
 mod basic;
+mod basic_indirect;
 mod chunk;
-mod util;
 mod dynamic;
+mod indirect_dynamic;
+mod util;
 
-trait Node {
-    type TTrait: Trait;
+trait Node<TChild> {
+    type TTrait: Trait<TChild>;
     type TTraitIterator: IntoIterator<Item = u128>;
 
     fn get_id(&self) -> u128;
@@ -24,20 +17,10 @@ trait Node {
     fn get_trait(&self, label: u128) -> Option<Self::TTrait>;
 }
 
-enum Containment {
-    Yes,
-    No,
-    Maybe,
-}
-
-trait Trait {
-    type TNode;
-
+trait Trait<TChild> {
     fn get_count(&self) -> usize;
-    fn get_child(&self, index: usize) -> Self::TNode;
+    fn get_child(&self, index: usize) -> TChild;
 }
-
-
 
 #[cfg(test)]
 mod tests {

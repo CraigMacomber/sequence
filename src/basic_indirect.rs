@@ -2,6 +2,7 @@ use std::collections::{hash_map::Keys, HashMap};
 
 use crate::{util::CloneIterator, Node, Trait};
 
+type ChildId = u128;
 pub struct BasicNode {
     id: u128,
     def: u128,
@@ -10,10 +11,10 @@ pub struct BasicNode {
 }
 
 pub struct BasicTrait {
-    children: Vec<BasicNode>,
+    children: Vec<ChildId>,
 }
 
-impl<'a> Node<&'a BasicNode> for &'a BasicNode {
+impl<'a> Node<ChildId> for &'a BasicNode {
     type TTrait = &'a BasicTrait;
     type TTraitIterator = CloneIterator<Keys<'a, u128, BasicTrait>>;
 
@@ -44,11 +45,11 @@ impl<'a> Node<&'a BasicNode> for &'a BasicNode {
     }
 }
 
-impl<'a> Trait<&'a BasicNode> for &'a BasicTrait {
+impl<'a> Trait<ChildId> for &'a BasicTrait {
     fn get_count(&self) -> usize {
         self.children.len()
     }
-    fn get_child(&self, index: usize) -> &'a BasicNode {
-        &self.children[index]
+    fn get_child(&self, index: usize) -> ChildId {
+        self.children[index]
     }
 }

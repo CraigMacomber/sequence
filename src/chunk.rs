@@ -65,7 +65,7 @@ impl<'a> ChunkOffset<'a> {
 }
 
 // Views first item as chunk in as node
-impl<'a> Node for ChunkOffset<'a> {
+impl<'a> Node<ChunkOffset<'a>> for ChunkOffset<'a> {
     type TTrait = ChunkView<'a>;
 
     fn get_id(&self) -> u128 {
@@ -120,13 +120,11 @@ impl<'a> Iterator for ChunkOffset<'a> {
     }
 }
 
-impl<'a> Trait for ChunkView<'a> {
-    type TNode = ChunkOffset<'a>;
-
+impl<'a> Trait<ChunkOffset<'a>> for ChunkView<'a> {
     fn get_count(&self) -> usize {
         self.schema.node_count as usize
     }
-    fn get_child(&self, index: usize) -> Self::TNode {
+    fn get_child(&self, index: usize) -> ChunkOffset<'a> {
         let offset = self.schema.bytes_per_node as usize * index as usize;
         let view = ChunkView {
             first_id: self.first_id + (index * self.schema.id_stride as usize) as u128,
