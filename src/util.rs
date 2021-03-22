@@ -1,5 +1,3 @@
-use std::ops::Index;
-
 pub struct CloneIterator<T> {
     pub t: T,
 }
@@ -21,49 +19,31 @@ where
 
 #[derive(Clone)]
 pub struct ImSlice<'a> {
-    data: &'a im_rc::Vector<u8>,
-    start: usize,
-    length: usize,
+    data: im_rc::vector::Focus<'a, u8>
 }
 
 impl<'a> From<&'a im_rc::Vector<u8>> for ImSlice<'a> {
     fn from(data: &'a im_rc::Vector<u8>) -> Self {
         ImSlice {
-            data: &data,
-            start: 0,
-            length: data.len(),
+            data: data.focus()
         }
     }
 }
 
 impl<'a> ImSlice<'a> {
     pub fn slice_with_length(&self, offset: usize, length: usize) -> Self {
-        assert!(offset + length <= self.length);
         ImSlice {
-            data: self.data,
-            start: self.start + offset,
-            length,
+            data: self.data.clone().narrow(offset..offset + length )
         }
     }
 }
 
 impl<'a> From<ImSlice<'a>> for Vec<u8> {
     fn from(s: ImSlice<'a>) -> Self {
-        // TODO: maybe remove need for this, or do something better (maybe im_vec could allow direct slicing if it happens to not span chunks?)
+        // TODO: maybe remove need for this, or do something better (use chunk_at?)
         s.data
-            .clone()
-            .slice(s.start..s.start + s.length)
-            .iter()
+            .into_iter()
             .map(|x| *x)
             .collect::<Vec<_>>()
-    }
-}
-
-impl<'a> Index<usize> for ImSlice<'a> {
-    type Output = u8;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        assert!(index < self.length);
-        &self.data[index + self.start]
     }
 }
