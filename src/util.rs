@@ -1,27 +1,13 @@
-#[derive(Clone)]
-pub struct ImSlice<'a> {
-    data: im_rc::vector::Focus<'a, u8>,
-}
+use im_rc::vector::Focus;
 
-impl<'a> From<&'a im_rc::Vector<u8>> for ImSlice<'a> {
-    fn from(data: &'a im_rc::Vector<u8>) -> Self {
-        ImSlice { data: data.focus() }
-    }
-}
+pub type ImSlice<'a> = im_rc::vector::Focus<'a, u8>;
 
-impl<'a> ImSlice<'a> {
-    pub fn slice_with_length(&self, offset: usize, length: usize) -> Self {
-        ImSlice {
-            data: self.data.clone().narrow(offset..offset + length),
-        }
-    }
-}
-
-impl<'a> From<ImSlice<'a>> for Vec<u8> {
-    fn from(s: ImSlice<'a>) -> Self {
-        // TODO: maybe remove need for this, or do something better (use chunk_at?)
-        s.data.into_iter().cloned().collect()
-    }
+pub fn slice_with_length<'a>(
+    focus: im_rc::vector::Focus<'a, u8>,
+    offset: usize,
+    length: usize,
+) -> Focus<'a, u8> {
+    focus.narrow(offset..offset + length)
 }
 
 mod tests {

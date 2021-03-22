@@ -1,6 +1,9 @@
 use std::iter::Cloned;
 
-use crate::{util::ImSlice, Node, Trait};
+use crate::{
+    util::{slice_with_length, ImSlice},
+    Node, Trait,
+};
 
 pub struct Chunk {
     first_id: u128,
@@ -43,8 +46,11 @@ impl<'a> Chunk {
             let (inner_byte_offset, schema) =
                 self.id_offset_to_byte_offset_and_schema.get(&rem).unwrap();
             let byte_offset = inner_byte_offset + div * self.schema.bytes_per_node;
-            let data = ImSlice::from(&self.data)
-                .slice_with_length(byte_offset as usize, schema.bytes_per_node as usize);
+            let data = slice_with_length(
+                self.data.focus(),
+                byte_offset as usize,
+                schema.bytes_per_node as usize,
+            );
             let view = ChunkView {
                 first_id: id,
                 schema,
@@ -71,7 +77,7 @@ impl Chunk {
         ChunkView {
             first_id: self.first_id,
             schema: &self.schema,
-            data: (&self.data).into(),
+            data: self.data.focus(),
         }
     }
 }
@@ -85,7 +91,7 @@ impl<'a> ChunkOffset<'a> {
         let offset = self.offset as usize;
         let stride = self.view.schema.bytes_per_node as usize;
         let start = offset * stride;
-        self.view.data.slice_with_length(start, stride)
+        slice_with_length(self.view.data.clone(), start, stride)
     }
 }
 
@@ -104,7 +110,11 @@ impl<'a> Node<ChunkOffset<'a>> for ChunkOffset<'a> {
     fn get_payload(&self) -> Option<ImSlice> {
         let offset = self.offset as usize * self.view.schema.bytes_per_node as usize;
         match self.view.schema.payload_size {
-            Some(p) => Some(self.view.data.slice_with_length(offset, p as usize).into()),
+            Some(p) => Some(slice_with_length(
+                self.view.data.clone(),
+                offset,
+                p as usize,
+            )),
             None => None,
         }
     }
@@ -119,9 +129,11 @@ impl<'a> Node<ChunkOffset<'a>> for ChunkOffset<'a> {
         match self.view.schema.traits.get(&label) {
             Some(x) => Some(ChunkView {
                 schema: &x.schema,
-                data: self
-                    .data()
-                    .slice_with_length(x.byte_offset as usize, x.schema.bytes_per_node as usize),
+                data: slice_with_length(
+                    self.data(),
+                    x.byte_offset as usize,
+                    x.schema.bytes_per_node as usize,
+                ),
                 first_id: self.first_id() + x.id_offset as u128,
             }),
             None => None,
@@ -153,9 +165,11 @@ impl<'a> Trait<ChunkOffset<'a>> for ChunkView<'a> {
         let view = ChunkView {
             first_id: self.first_id + (index * self.schema.id_stride as usize) as u128,
             schema: self.schema,
-            data: self
-                .data
-                .slice_with_length(offset, self.schema.bytes_per_node as usize),
+            data: slice_with_length(
+                self.data.clone(),
+                offset,
+                self.schema.bytes_per_node as usize,
+            ),
         };
         ChunkOffset::<'a> {
             view,

@@ -3,6 +3,8 @@ use std::{
     iter::Cloned,
 };
 
+use im_rc::Vector;
+
 use crate::{util::ImSlice, Node, Trait};
 
 pub struct BasicNode {
@@ -29,11 +31,7 @@ impl<'a> Node<&'a BasicNode> for &'a BasicNode {
     }
 
     fn get_payload(&self) -> Option<ImSlice> {
-        let o = &self.payload;
-        match o {
-            Some(p) => Some(p.into()),
-            None => None,
-        }
+        self.payload.as_ref().map(|p| p.focus())
     }
 
     fn get_traits(&self) -> Self::TTraitIterator {

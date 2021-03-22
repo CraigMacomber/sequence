@@ -66,10 +66,7 @@ impl<'a> Node<NodesView<'a>> for NodesView<'a> {
 
     fn get_payload(&self) -> Option<ImSlice> {
         match self {
-            NodesView::Dynamic(d) => match &d.payload {
-                Some(p) => Some(p.into()),
-                None => None,
-            },
+            NodesView::Dynamic(d) => d.payload.as_ref().map(|p| p.focus()),
             NodesView::Chunk(c) => c.get_payload(),
         }
     }

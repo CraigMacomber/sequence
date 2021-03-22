@@ -32,7 +32,7 @@ impl<'a> Node<ChildId> for &'a BasicNode {
     fn get_payload(&self) -> Option<ImSlice> {
         let o = &self.payload;
         match o {
-            Some(p) => Some(p.into()),
+            Some(p) => Some(p.focus()),
             None => None,
         }
     }
