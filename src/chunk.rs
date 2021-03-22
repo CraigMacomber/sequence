@@ -1,20 +1,22 @@
-use std::collections::{hash_map::Keys, HashMap};
-
-use crate::{util::CloneIterator, Node, Trait};
+use crate::{
+    util::{CloneIterator, ImSlice},
+    Node, Trait,
+};
 
 pub struct Chunk {
     first_id: u128,
     schema: ChunkSchema,
-    data: Vec<u8>,
+    data: im_rc::Vector<u8>,
+    id_offset_to_byte_offset_and_schema: im_rc::HashMap<u32, (u32, ChunkSchema)>, // TODO: include parent info in this
 }
 
 struct ChunkSchema {
     def: u128,
     node_count: u32,
-    bytes_per_node: u16,
-    id_stride: u32, // Typically total number in subtree (nodes under traits + 1)
+    bytes_per_node: u32,
+    id_stride: u32, // total number in subtree (nodes under traits + 1)
     payload_size: Option<u16>,
-    traits: HashMap<u128, OffsetSchema>,
+    traits: im_rc::HashMap<u128, OffsetSchema>,
 }
 
 pub struct OffsetSchema {
@@ -29,7 +31,31 @@ pub struct OffsetSchema {
 pub struct ChunkView<'a> {
     first_id: u128,
     schema: &'a ChunkSchema,
-    data: &'a [u8],
+    data: ImSlice<'a>,
+}
+
+impl<'a> Chunk {
+    pub fn lookup(&'a self, id: u128) -> Option<ChunkOffset<'a>> {
+        if id < self.first_id {
+            None
+        } else if id < self.first_id + (self.schema.id_stride as usize * self.get_count()) as u128 {
+            let id_offset = (id - self.first_id) as u32;
+            let (div, rem) = num_integer::div_rem(id_offset, self.schema.id_stride);
+            let (inner_byte_offset, schema) =
+                self.id_offset_to_byte_offset_and_schema.get(&rem).unwrap();
+            let byte_offset = inner_byte_offset + div * self.schema.bytes_per_node;
+            let data = ImSlice::from(&self.data)
+                .slice_with_length(byte_offset as usize, schema.bytes_per_node as usize);
+            let view = ChunkView {
+                first_id: id,
+                schema,
+                data,
+            };
+            Some(ChunkOffset { view, offset: 0 })
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -46,7 +72,7 @@ impl Chunk {
         ChunkView {
             first_id: self.first_id,
             schema: &self.schema,
-            data: &self.data,
+            data: (&self.data).into(),
         }
     }
 }
@@ -56,11 +82,11 @@ impl<'a> ChunkOffset<'a> {
         (self.offset * self.view.schema.id_stride) as u128 + self.view.first_id
     }
 
-    fn data(&self) -> &'a [u8] {
+    fn data(&self) -> ImSlice<'a> {
         let offset = self.offset as usize;
         let stride = self.view.schema.bytes_per_node as usize;
         let start = offset * stride;
-        &self.view.data[start..start + stride]
+        self.view.data.slice_with_length(start, stride)
     }
 }
 
@@ -76,15 +102,15 @@ impl<'a> Node<ChunkOffset<'a>> for ChunkOffset<'a> {
         self.view.schema.def
     }
 
-    fn get_payload(&self) -> Option<&[u8]> {
+    fn get_payload(&self) -> Option<ImSlice> {
         let offset = self.offset as usize * self.view.schema.bytes_per_node as usize;
         match self.view.schema.payload_size {
-            Some(p) => Some(&self.view.data[offset..offset + p as usize]),
+            Some(p) => Some(self.view.data.slice_with_length(offset, p as usize).into()),
             None => None,
         }
     }
 
-    type TTraitIterator = CloneIterator<Keys<'a, u128, OffsetSchema>>;
+    type TTraitIterator = CloneIterator<im_rc::hashmap::Keys<'a, u128, OffsetSchema>>;
 
     fn get_traits(&self) -> Self::TTraitIterator {
         CloneIterator {
@@ -96,8 +122,9 @@ impl<'a> Node<ChunkOffset<'a>> for ChunkOffset<'a> {
         match self.view.schema.traits.get(&label) {
             Some(x) => Some(ChunkView {
                 schema: &x.schema,
-                data: &self.data()[x.byte_offset as usize
-                    ..x.byte_offset as usize + x.schema.bytes_per_node as usize],
+                data: self
+                    .data()
+                    .slice_with_length(x.byte_offset as usize, x.schema.bytes_per_node as usize),
                 first_id: self.first_id() + x.id_offset as u128,
             }),
             None => None,
@@ -129,7 +156,9 @@ impl<'a> Trait<ChunkOffset<'a>> for ChunkView<'a> {
         let view = ChunkView {
             first_id: self.first_id + (index * self.schema.id_stride as usize) as u128,
             schema: self.schema,
-            data: &self.data[offset..offset + self.schema.bytes_per_node as usize],
+            data: self
+                .data
+                .slice_with_length(offset, self.schema.bytes_per_node as usize),
         };
         ChunkOffset::<'a> {
             view,

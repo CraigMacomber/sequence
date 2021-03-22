@@ -1,16 +1,19 @@
 use std::collections::{hash_map::Keys, HashMap};
 
-use crate::{util::CloneIterator, Node, Trait};
+use crate::{
+    util::{CloneIterator, ImSlice},
+    Node, Trait,
+};
 
 pub struct BasicNode {
     id: u128,
     def: u128,
-    payload: Option<Vec<u8>>,
-    traits: HashMap<u128, BasicTrait>,
+    payload: Option<im_rc::Vector<u8>>,
+    traits: HashMap<u128, BasicTrait>, // TODO: Use hash map from im_rc
 }
 
 pub struct BasicTrait {
-    children: Vec<BasicNode>,
+    children: Vec<BasicNode>, // TODO: Use vector from im_rc
 }
 
 impl<'a> Node<&'a BasicNode> for &'a BasicNode {
@@ -25,10 +28,10 @@ impl<'a> Node<&'a BasicNode> for &'a BasicNode {
         self.def
     }
 
-    fn get_payload(&self) -> Option<&[u8]> {
+    fn get_payload(&self) -> Option<ImSlice> {
         let o = &self.payload;
         match o {
-            Some(p) => Some(p.as_slice()),
+            Some(p) => Some(p.into()),
             None => None,
         }
     }

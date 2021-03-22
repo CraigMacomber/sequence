@@ -2,14 +2,14 @@ use std::collections::HashMap;
 
 use crate::{
     chunk::{Chunk, ChunkOffset, ChunkView},
-    util::CloneIterator,
+    util::{CloneIterator, ImSlice},
     Node, Trait,
 };
 
 pub struct DynamicNode {
     pub id: u128,
     pub def: u128,
-    pub payload: Option<Vec<u8>>,
+    pub payload: Option<im_rc::Vector<u8>>,
     pub traits: HashMap<u128, DynamicTrait>,
 }
 
@@ -64,10 +64,10 @@ impl<'a> Node<NodesView<'a>> for NodesView<'a> {
         }
     }
 
-    fn get_payload(&self) -> Option<&[u8]> {
+    fn get_payload(&self) -> Option<ImSlice> {
         match self {
             NodesView::Dynamic(d) => match &d.payload {
-                Some(p) => Some(p.as_slice()),
+                Some(p) => Some(p.into()),
                 None => None,
             },
             NodesView::Chunk(c) => c.get_payload(),
