@@ -1,9 +1,9 @@
-use std::collections::{hash_map::Keys, HashMap};
-
-use crate::{
-    util::{CloneIterator, ImSlice},
-    Node, Trait,
+use std::{
+    collections::{hash_map::Keys, HashMap},
+    iter::Cloned,
 };
+
+use crate::{util::ImSlice, Node, Trait};
 
 type ChildId = u128;
 pub struct BasicNode {
@@ -19,7 +19,7 @@ pub struct BasicTrait {
 
 impl<'a> Node<ChildId> for &'a BasicNode {
     type TTrait = &'a BasicTrait;
-    type TTraitIterator = CloneIterator<Keys<'a, u128, BasicTrait>>;
+    type TTraitIterator = Cloned<Keys<'a, u128, BasicTrait>>;
 
     fn get_id(&self) -> u128 {
         self.id
@@ -38,9 +38,7 @@ impl<'a> Node<ChildId> for &'a BasicNode {
     }
 
     fn get_traits(&self) -> Self::TTraitIterator {
-        CloneIterator {
-            t: self.traits.keys(),
-        }
+        self.traits.keys().cloned()
     }
 
     fn get_trait(&self, label: u128) -> Option<Self::TTrait> {

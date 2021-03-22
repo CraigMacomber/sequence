@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     chunk::{Chunk, ChunkOffset, ChunkView},
-    util::{CloneIterator, ImSlice},
+    util::ImSlice,
     Node, Trait,
 };
 
@@ -76,7 +76,7 @@ impl<'a> Node<NodesView<'a>> for NodesView<'a> {
 
     fn get_traits(&self) -> Self::TTraitIterator {
         match self {
-            NodesView::Dynamic(d) => CloneIterator { t: d.traits.keys() }.collect(),
+            NodesView::Dynamic(d) => d.traits.keys().cloned().collect(),
             NodesView::Chunk(c) => c.get_traits().collect(),
         }
     }

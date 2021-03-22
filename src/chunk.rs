@@ -1,7 +1,6 @@
-use crate::{
-    util::{CloneIterator, ImSlice},
-    Node, Trait,
-};
+use std::iter::Cloned;
+
+use crate::{util::ImSlice, Node, Trait};
 
 pub struct Chunk {
     first_id: u128,
@@ -110,12 +109,10 @@ impl<'a> Node<ChunkOffset<'a>> for ChunkOffset<'a> {
         }
     }
 
-    type TTraitIterator = CloneIterator<im_rc::hashmap::Keys<'a, u128, OffsetSchema>>;
+    type TTraitIterator = Cloned<im_rc::hashmap::Keys<'a, u128, OffsetSchema>>;
 
     fn get_traits(&self) -> Self::TTraitIterator {
-        CloneIterator {
-            t: self.view.schema.traits.keys(),
-        }
+        self.view.schema.traits.keys().cloned()
     }
 
     fn get_trait(&self, label: u128) -> Option<Self::TTrait> {
