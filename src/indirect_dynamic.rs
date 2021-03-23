@@ -1,12 +1,17 @@
+//! Implementation of Node thats indirect, and supports multiple representations (chunk, and basic nodes)
+
 use crate::{
     basic_indirect::BasicNode, chunk::ChunkOffset, forest::ChunkId, Def, Label, Node, NodeId,
 };
 
-pub struct TraitView<'a> {
-    // Iterate this first
-    pub basic: Option<<&'a BasicNode<NodeId, ChunkId> as Node<ChunkId, NodeId>>::TTrait>,
-    // Then this
-    pub chunk: Option<<ChunkOffset<'a, NodeId> as Node<ChunkOffset<'a, NodeId>, NodeId>>::TTrait>,
+pub enum Child<'a> {
+    Id(ChunkId),
+    Chunk(ChunkOffset<'a, NodeId>),
+}
+
+pub enum TraitView<'a> {
+    Basic(<&'a BasicNode<NodeId, ChunkId> as Node<ChunkId, NodeId>>::TTrait),
+    Chunk(<ChunkOffset<'a, NodeId> as Node<ChunkOffset<'a, NodeId>, NodeId>>::TTrait),
 }
 
 #[derive(Clone)]
@@ -19,7 +24,7 @@ pub enum NodeView<'a> {
     // TODO: maybe chunks referencing external subtrees (so they can have child references like payloads)
 }
 
-impl<'a> Node<ChunkId, NodeId> for NodeView<'a> {
+impl<'a> Node<Child<'a>, NodeId> for NodeView<'a> {
     type TTrait = TraitView<'a>;
 
     type TTraitIterator = TraitIterator<'a>;
@@ -54,29 +59,20 @@ impl<'a> Node<ChunkId, NodeId> for NodeView<'a> {
 
     fn get_trait(&self, label: Label) -> Self::TTrait {
         match self {
-            NodeView::Single(s) => TraitView {
-                basic: Some(s.get_trait(label)),
-                chunk: None,
-            },
-            NodeView::Chunk(c) => TraitView {
-                basic: None,
-                chunk: Some(c.get_trait(label)),
-            },
+            NodeView::Single(s) => TraitView::Basic(s.get_trait(label)),
+            NodeView::Chunk(c) => TraitView::Chunk(c.get_trait(label)),
         }
     }
 }
 
 impl<'a> Iterator for TraitView<'a> {
-    type Item = ChunkId;
+    type Item = Child<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(ref mut c) = self.chunk {
-            return c.next().map(|i| ChunkId(i.get_id()));
+        match self {
+            TraitView::Basic(ref mut c) => c.next().map(|id| Child::Id(id)),
+            TraitView::Chunk(ref mut c) => c.next().map(|c| Child::Chunk(c)),
         }
-        if let Some(ref mut c) = self.basic {
-            return c.next();
-        }
-        None
     }
 }
 

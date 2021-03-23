@@ -1,11 +1,12 @@
-//! Hookup to Generic Nav
+//! Hookup to Generic Nav. This takes indirect_dynamic::NodeView, and wraps it with a recursive nav type that handles child lookup using Forest.
 
 use crate::{
     basic_indirect::BasicNode,
     chunk::{Chunk, ChunkIterator, ChunkOffset},
     forest::{self, ChunkId},
+    indirect_dynamic::{Child, NodeView},
     nav::{Nav, Resolver},
-    Def, Label, Node, NodeId,
+    Node, NodeId,
 };
 
 #[derive(Clone)]
@@ -16,13 +17,6 @@ pub enum NavChunk {
 
 impl<'a> forest::Nodes for &'a NavChunk {
     type View = NodeView<'a>;
-    // fn first_id(&self) -> NodeId {
-    //     match self {
-    //         NavChunk::Single(n) => n.get_id(),
-    //         NavChunk::Chunk(c) => c.first_id,
-    //     }
-    // }
-
     fn get(&self, id: NodeId) -> Option<NodeView<'a>> {
         match self {
             NavChunk::Single(n) => {
@@ -60,26 +54,21 @@ impl<'a> Iterator for Expander<'a> {
     }
 }
 
-pub enum ResolverId<'a> {
-    Id(ChunkId),
-    Chunk(ChunkOffset<'a, NodeId>),
-}
-
 impl<'a> Resolver<NodeView<'a>> for &'a Forest {
-    type ChunkId = ResolverId<'a>;
+    type ChunkId = Child<'a>;
 
     type Iter = Expander<'a>;
 
     fn expand(&self, chunk: Self::ChunkId) -> Self::Iter {
         match chunk {
-            ResolverId::Id(id) => match self.find_nodes(id).unwrap() {
+            Child::Id(id) => match self.find_nodes(id).unwrap() {
                 NavChunk::Single(basic) => Expander::Single(NodeView::Single(basic)),
                 NavChunk::Chunk(chunk) => Expander::Chunk(ChunkIterator::View(ChunkOffset {
                     view: chunk.view(),
                     offset: 0,
                 })),
             },
-            ResolverId::Chunk(chunk) => Expander::Chunk(ChunkIterator::View(chunk)),
+            Child::Chunk(chunk) => Expander::Chunk(ChunkIterator::View(chunk)),
         }
     }
 }
@@ -93,6 +82,7 @@ impl Forest {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{Def, Label};
 
     #[test]
     fn it_works() {
@@ -122,86 +112,3 @@ mod tests {
 }
 
 //// indirect dynamic 2
-
-pub enum TraitView<'a> {
-    Basic(<&'a BasicNode<NodeId, ChunkId> as Node<ChunkId, NodeId>>::TTrait),
-    Chunk(<ChunkOffset<'a, NodeId> as Node<ChunkOffset<'a, NodeId>, NodeId>>::TTrait),
-}
-
-#[derive(Clone)]
-pub enum NodeView<'a> {
-    Single(&'a BasicNode<NodeId, ChunkId>),
-    Chunk(ChunkOffset<'a, NodeId>),
-    // TODO: support undownloaded chunks blobs (find can return which blobs and at what offset the node is at)
-    // TODO: support undownloaded subtrees that arn't chunks: find returns iterator of candidate trees using bloom filters
-    // TODO: these types are write optimized. Consider supporting read/size optimized types (ex: using byte array instead of im's Vector)
-    // TODO: maybe chunks referencing external subtrees (so they can have child references like payloads)
-}
-
-impl<'a> Node<ResolverId<'a>, NodeId> for NodeView<'a> {
-    type TTrait = TraitView<'a>;
-
-    type TTraitIterator = TraitIterator<'a>;
-
-    fn get_id(&self) -> NodeId {
-        match self {
-            NodeView::Single(s) => s.get_id(),
-            NodeView::Chunk(c) => c.get_id(),
-        }
-    }
-
-    fn get_def(&self) -> Def {
-        match self {
-            NodeView::Single(s) => s.get_def(),
-            NodeView::Chunk(c) => c.get_def(),
-        }
-    }
-
-    fn get_payload(&self) -> Option<crate::util::ImSlice> {
-        match self {
-            NodeView::Single(s) => s.get_payload(),
-            NodeView::Chunk(c) => c.get_payload(),
-        }
-    }
-
-    fn get_traits(&self) -> Self::TTraitIterator {
-        match self {
-            NodeView::Single(s) => TraitIterator::Single(s.get_traits()),
-            NodeView::Chunk(c) => TraitIterator::Chunk(c.get_traits()),
-        }
-    }
-
-    fn get_trait(&self, label: Label) -> Self::TTrait {
-        match self {
-            NodeView::Single(s) => TraitView::Basic(s.get_trait(label)),
-            NodeView::Chunk(c) => TraitView::Chunk(c.get_trait(label)),
-        }
-    }
-}
-
-impl<'a> Iterator for TraitView<'a> {
-    type Item = ResolverId<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            TraitView::Basic(ref mut c) => c.next().map(|id| ResolverId::Id(id)),
-            TraitView::Chunk(ref mut c) => c.next().map(|c| ResolverId::Chunk(c)),
-        }
-    }
-}
-
-pub enum TraitIterator<'a> {
-    Single(<&'a BasicNode<NodeId, ChunkId> as Node<ChunkId, NodeId>>::TTraitIterator),
-    Chunk(<ChunkOffset<'a, NodeId> as Node<ChunkOffset<'a, NodeId>, NodeId>>::TTraitIterator),
-}
-
-impl<'a> Iterator for TraitIterator<'a> {
-    type Item = Label;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            TraitIterator::Single(ref mut s) => s.next(),
-            TraitIterator::Chunk(ref mut c) => c.next(),
-        }
-    }
-}
