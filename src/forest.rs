@@ -16,17 +16,17 @@ pub trait Nodes<View> {
 // Nodes added to forest must have non-overlapping ranges of Ids.
 pub struct Forest<TNodes, View>
 where
-    TNodes: Nodes<NodeId, View>,
+    TNodes: Nodes<View>,
 {
     // TODO: Nodes store their id (otherwise get can't be implemented), which is redundant with one in map.
     map: im_rc::OrdMap<ChunkId, TNodes>,
-    phantom: PhantomData<dyn Nodes<NodeId, View>>,
+    phantom: PhantomData<dyn Nodes<View>>,
     // TODO parent information
 }
 
 impl<TNodes, View> Forest<TNodes, View>
 where
-    TNodes: Nodes<NodeId, View>,
+    TNodes: Nodes<View>,
     ChunkId: Ord,
 {
     pub fn find_nodes(&self, id: ChunkId) -> Option<&TNodes> {
