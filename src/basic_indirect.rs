@@ -1,8 +1,4 @@
-use std::{
-    collections::{hash_map::Keys, HashMap},
-    iter::Cloned,
-    slice,
-};
+use std::{iter::Cloned, slice};
 
 use crate::{util::ImSlice, Def, Label, Node};
 
@@ -10,18 +6,19 @@ use crate::{util::ImSlice, Def, Label, Node};
 // Due to issues with recursive types, this can't be used like `basic` to own its children.
 // type BasicResucrsive<Id> = BasicNode<Id, BasicResucrsive<Id>>;
 
+#[derive(Clone)]
 pub struct BasicNode<Id, Child> {
-    id: Id,
-    def: Def,
-    payload: Option<im_rc::Vector<u8>>,
-    traits: HashMap<Label, Vec<Child>>,
+    pub id: Id,
+    pub def: Def,
+    pub payload: Option<im_rc::Vector<u8>>,
+    pub traits: im_rc::HashMap<Label, Vec<Child>>,
 }
 
 pub type BasicTrait<Child> = Vec<Child>;
 
 impl<'a, Id: Copy, Child: Clone> Node<Child, Id> for &'a BasicNode<Id, Child> {
     type TTrait = Cloned<slice::Iter<'a, Child>>;
-    type TTraitIterator = Cloned<Keys<'a, Label, Vec<Child>>>;
+    type TTraitIterator = Cloned<im_rc::hashmap::Keys<'a, Label, Vec<Child>>>;
 
     fn get_id(&self) -> Id {
         self.id

@@ -11,6 +11,7 @@ use crate::{
     Def, Label, Node,
 };
 
+#[derive(Clone)]
 pub struct Chunk<Id> {
     pub first_id: Id,
     schema: ChunkSchema,
@@ -18,6 +19,7 @@ pub struct Chunk<Id> {
     id_offset_to_byte_offset_and_schema: im_rc::HashMap<u32, (u32, ChunkSchema)>, // TODO: include parent info in this
 }
 
+#[derive(Clone)]
 struct ChunkSchema {
     def: Def,
     node_count: u32,
@@ -27,6 +29,7 @@ struct ChunkSchema {
     traits: im_rc::HashMap<Label, OffsetSchema>,
 }
 
+#[derive(Clone)]
 pub struct OffsetSchema {
     id_offset: u32,
     byte_offset: u32,

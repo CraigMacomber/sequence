@@ -5,6 +5,7 @@ use crate::{
     Def, Label, Node, NodeId,
 };
 
+#[derive(Clone)]
 pub enum Nodes {
     Single(BasicNode<NodeId, ChunkId>),
     Chunk(Chunk<NodeId>),
@@ -17,7 +18,10 @@ pub struct TraitView<'a> {
     chunk: Option<<ChunkOffset<'a, NodeId> as Node<ChunkOffset<'a, NodeId>, NodeId>>::TTrait>,
 }
 
-impl<'a> forest::Nodes<NodeView<'a>> for &'a Nodes {
+impl<'a> forest::Nodes<NodeView<'a>> for &'a Nodes
+where
+    Nodes: 'a,
+{
     fn first_id(&self) -> NodeId {
         match self {
             Nodes::Single(n) => n.get_id(),
@@ -39,6 +43,7 @@ impl<'a> forest::Nodes<NodeView<'a>> for &'a Nodes {
     }
 }
 
+#[derive(Clone)]
 pub enum NodeView<'a> {
     Single(&'a BasicNode<NodeId, ChunkId>),
     Chunk(ChunkOffset<'a, NodeId>),
@@ -118,18 +123,21 @@ impl<'a> Iterator for TraitIterator<'a> {
     type Item = Label;
 
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        match self {
+            TraitIterator::Single(ref mut s) => s.next(),
+            TraitIterator::Chunk(ref mut c) => c.next(),
+        }
     }
 }
 
 // make generic nav: Node<T> + Resolver<T> -> Nav: Node<Nav>
 
 pub struct Nav<'a> {
-    forest: &'a Forest<&'a Nodes, NodeView<'a>>,
+    forest: &'a Forest<Nodes, NodeView<'a>>,
     view: NodeView<'a>,
 }
 pub struct TraitNav<'a> {
-    forest: &'a Forest<&'a Nodes, NodeView<'a>>,
+    forest: &'a Forest<Nodes, NodeView<'a>>,
     view: TraitView<'a>,
 }
 
@@ -241,3 +249,26 @@ impl<'a> Iterator for TraitNav<'a> {
 //         }
 //     }
 // }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::forest::Forest;
+
+    #[test]
+    fn it_works() {
+        let mut forest: Forest<Nodes, _> = Forest::new();
+        forest.map.insert(
+            ChunkId(NodeId(5)),
+            Nodes::Single(BasicNode {
+                def: Def(1),
+                id: NodeId(5),
+                payload: None,
+                traits: im_rc::HashMap::new(),
+            }),
+        );
+
+        let n = forest.find_node(NodeId(5)).unwrap();
+        assert!(n.get_def().0 == 1);
+    }
+}
