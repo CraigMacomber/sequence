@@ -3,8 +3,8 @@
 use crate::{
     basic_indirect::BasicNode,
     chunk::{Chunk, ChunkIterator, ChunkOffset},
-    forest::ChunkId,
-    nav::Resolver,
+    forest::{self, ChunkId},
+    nav::{Nav, Resolver},
     Def, Label, Node, NodeId,
 };
 
@@ -14,12 +14,30 @@ pub enum NavChunk {
     Chunk(Chunk<NodeId>),
 }
 
-// Nodes added to forest must have non-overlapping ranges of Ids.
-#[derive(Clone)]
-pub struct Forest {
-    pub map: im_rc::OrdMap<ChunkId, NavChunk>,
+impl<'a> forest::Nodes for &'a NavChunk {
+    type View = NodeView<'a>;
+    // fn first_id(&self) -> NodeId {
+    //     match self {
+    //         NavChunk::Single(n) => n.get_id(),
+    //         NavChunk::Chunk(c) => c.first_id,
+    //     }
+    // }
+
+    fn get(&self, id: NodeId) -> Option<NodeView<'a>> {
+        match self {
+            NavChunk::Single(n) => {
+                if n.get_id() == id {
+                    Some(NodeView::Single(n))
+                } else {
+                    None
+                }
+            }
+            NavChunk::Chunk(c) => c.lookup(id).map(|x| NodeView::Chunk(x)),
+        }
+    }
 }
 
+type Forest = forest::Forest<NavChunk>;
 pub enum Expander<'a> {
     Chunk(ChunkIterator<'a, NodeId>),
     Single(NodeView<'a>),
@@ -54,7 +72,7 @@ impl<'a> Resolver<NodeView<'a>> for &'a Forest {
 
     fn expand(&self, chunk: Self::ChunkId) -> Self::Iter {
         match chunk {
-            ResolverId::Id(id) => match self.map.get(&id).unwrap() {
+            ResolverId::Id(id) => match self.find_nodes(id).unwrap() {
                 NavChunk::Single(basic) => Expander::Single(NodeView::Single(basic)),
                 NavChunk::Chunk(chunk) => Expander::Chunk(ChunkIterator::View(ChunkOffset {
                     view: chunk.view(),
@@ -66,37 +84,40 @@ impl<'a> Resolver<NodeView<'a>> for &'a Forest {
     }
 }
 
+impl Forest {
+    pub fn nav_from(&self, id: NodeId) -> Option<Nav<&Self, NodeView>> {
+        self.find_node(id).map(|view| Nav::new(self, view))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn it_works() {
-        // let mut forest = Forest::new();
-        // forest.map.insert(
-        //     ChunkId(NodeId(5)),
-        //     NavChunk::Single(BasicNode {
-        //         def: Def(1),
-        //         id: NodeId(5),
-        //         payload: None,
-        //         traits: im_rc::HashMap::new(),
-        //     }),
-        // );
+        let mut forest = Forest::new();
+        forest.map.insert(
+            ChunkId(NodeId(5)),
+            NavChunk::Single(BasicNode {
+                def: Def(1),
+                id: NodeId(5),
+                payload: None,
+                traits: im_rc::HashMap::new(),
+            }),
+        );
 
-        // let n = forest.find_node(NodeId(5)).unwrap();
-        // assert!(n.get_def().0 == 1);
+        let n = forest.find_node(NodeId(5)).unwrap();
+        assert!(n.get_def().0 == 1);
 
-        // let nav = Nav {
-        //     forest: &forest,
-        //     view: n,
-        // };
+        let nav = forest.nav_from(NodeId(5)).unwrap();
 
-        // let children: Vec<_> = nav.get_trait(Label(9)).collect();
-        // assert!(children.len() == 0);
+        let children: Vec<_> = nav.get_trait(Label(9)).collect();
+        assert!(children.len() == 0);
 
-        // let n = forest.find_nodes(ChunkId(NodeId(5))).unwrap();
-        // let n = forest::Nodes::get(&n, NodeId(5)).unwrap();
-        // assert!(n.get_def().0 == 1);
+        let n = forest.find_nodes(ChunkId(NodeId(5))).unwrap();
+        let n = forest::Nodes::get(&n, NodeId(5)).unwrap();
+        assert!(n.get_def().0 == 1);
     }
 }
 

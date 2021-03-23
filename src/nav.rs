@@ -3,32 +3,38 @@
 use crate::{Def, Label, Node, NodeId};
 
 /// Chunk resolver
-pub trait Resolver<Node> {
+pub trait Resolver<Node>: Copy {
     type ChunkId;
     type Iter: Iterator<Item = Node>;
     fn expand(&self, chunk: Self::ChunkId) -> Self::Iter;
 }
 
-pub struct Nav<'a, R, TNode> {
-    resolver: &'a R,
+pub struct Nav<R, TNode> {
+    resolver: R,
     view: TNode,
 }
-pub struct TraitNav<'a, R, TNode>
+
+impl<R, TNode> Nav<R, TNode> {
+    pub fn new(resolver: R, view: TNode) -> Self {
+        Nav { resolver, view }
+    }
+}
+pub struct TraitNav<R, TNode>
 where
     R: Resolver<TNode>,
     TNode: Node<<R as Resolver<TNode>>::ChunkId, NodeId>,
 {
-    resolver: &'a R,
+    resolver: R,
     view: <TNode as Node<<R as Resolver<TNode>>::ChunkId, NodeId>>::TTrait,
     pending: Option<<R as Resolver<TNode>>::Iter>,
 }
 
-impl<'a, R, TNode> Node<Nav<'a, R, TNode>, NodeId> for Nav<'a, R, TNode>
+impl<R, TNode> Node<Nav<R, TNode>, NodeId> for Nav<R, TNode>
 where
     R: Resolver<TNode>,
     TNode: Node<<R as Resolver<TNode>>::ChunkId, NodeId>,
 {
-    type TTrait = TraitNav<'a, R, TNode>;
+    type TTrait = TraitNav<R, TNode>;
 
     type TTraitIterator = TNode::TTraitIterator;
 
@@ -57,12 +63,12 @@ where
     }
 }
 
-impl<'a, R, TNode> Iterator for TraitNav<'a, R, TNode>
+impl<R, TNode> Iterator for TraitNav<R, TNode>
 where
     R: Resolver<TNode>,
     TNode: Node<<R as Resolver<TNode>>::ChunkId, NodeId>,
 {
-    type Item = Nav<'a, R, TNode>;
+    type Item = Nav<R, TNode>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.pending {

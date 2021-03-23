@@ -14,13 +14,14 @@ pub enum NavChunk {
     Chunk(Chunk<NodeId>),
 }
 
-impl<'a> forest::Nodes<NodeView<'a>> for &'a NavChunk {
-    fn first_id(&self) -> NodeId {
-        match self {
-            NavChunk::Single(n) => n.get_id(),
-            NavChunk::Chunk(c) => c.first_id,
-        }
-    }
+impl<'a> forest::Nodes for &'a NavChunk {
+    type View = NodeView<'a>;
+    // fn first_id(&self) -> NodeId {
+    //     match self {
+    //         NavChunk::Single(n) => n.get_id(),
+    //         NavChunk::Chunk(c) => c.first_id,
+    //     }
+    // }
 
     fn get(&self, id: NodeId) -> Option<NodeView<'a>> {
         match self {
@@ -37,11 +38,11 @@ impl<'a> forest::Nodes<NodeView<'a>> for &'a NavChunk {
 }
 
 pub struct Nav<'a> {
-    forest: &'a Forest<NavChunk, NodeView<'a>>,
+    forest: &'a Forest<NavChunk>,
     view: NodeView<'a>,
 }
 pub struct TraitNav<'a> {
-    forest: &'a Forest<NavChunk, NodeView<'a>>,
+    forest: &'a Forest<NavChunk>,
     view: TraitView<'a>,
 }
 
@@ -162,7 +163,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let mut forest: Forest<NavChunk, _> = Forest::new();
+        let mut forest: Forest<NavChunk> = Forest::new();
         forest.map.insert(
             ChunkId(NodeId(5)),
             NavChunk::Single(BasicNode {
