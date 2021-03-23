@@ -16,7 +16,7 @@ pub enum TraitView<'a> {
     Chunk(ChunkView<'a, NodeId>),
 }
 
-impl<'a> forest::Nodes<NodeId, NodeView<'a>> for &'a Nodes {
+impl<'a> forest::Nodes<NodeView<'a>> for &'a Nodes {
     fn first_id(&self) -> NodeId {
         match self {
             Nodes::Single(n) => n.get_id(),

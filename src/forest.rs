@@ -6,9 +6,9 @@ use crate::NodeId;
 #[derive(Ord, PartialOrd, Eq, PartialEq, Clone, Copy)]
 pub struct ChunkId(pub NodeId);
 
-pub trait Nodes<Id, View> {
-    fn first_id(&self) -> Id;
-    fn get(&self, id: Id) -> Option<View>;
+pub trait Nodes<View> {
+    fn first_id(&self) -> NodeId;
+    fn get(&self, id: NodeId) -> Option<View>;
 }
 
 // TODO: mutation APIs
