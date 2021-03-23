@@ -5,6 +5,8 @@ use util::ImSlice;
 extern crate im_rc;
 extern crate num_integer;
 
+mod a_nav;
+mod b_nav;
 mod basic;
 mod basic_indirect;
 mod chunk;

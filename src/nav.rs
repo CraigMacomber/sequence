@@ -1,46 +1,36 @@
-//! Allow viewing a forest of chunks as a tree
+//! Generic Nav which handles child id indirection via a Resolver which returns an iterable of Nodes for an Id.
 
-use crate::{
-    forest::{ChunkId, Forest, Nodes},
-    Def, Label, Node, NodeId,
-};
+use crate::{Def, Label, Node, NodeId};
 
-// make generic nav: Node<T> + Resolver<T> -> Nav: Node<Nav>
-
-pub trait NavChunk<View>: Nodes<View> {
-    // iterate the roots of this chunk. This is a subset of ids owned by it.
-    type Iter: Iterator<Item = ChunkOrView<View>>;
-    fn iter(&self) -> Self::Iter;
+/// Chunk resolver
+pub trait Resolver<Node> {
+    type ChunkId;
+    type Iter: Iterator<Item = Node>;
+    fn expand(&self, chunk: Self::ChunkId) -> Self::Iter;
 }
 
-pub enum ChunkOrView<View> {
-    Single(View),
-    Chunk(ChunkId),
+pub struct Nav<'a, R, TNode> {
+    resolver: &'a R,
+    view: TNode,
 }
-
-pub struct Nav<'a, N, V> {
-    forest: &'a Forest<N, V>,
-    view: V,
-}
-
-pub struct TraitNav<'a, N, V>
+pub struct TraitNav<'a, R, TNode>
 where
-    //&'a N: NavChunk<V>,
-    V: Node<ChunkOrView<V>, NodeId>,
+    R: Resolver<TNode>,
+    TNode: Node<<R as Resolver<TNode>>::ChunkId, NodeId>,
 {
-    forest: &'a Forest<N, V>,
-    view: <V as Node<ChunkOrView<V>, NodeId>>::TTrait, //<&'a N as NavChunk<V>>::Iter,
-                                                       // pending: Option<
+    resolver: &'a R,
+    view: <TNode as Node<<R as Resolver<TNode>>::ChunkId, NodeId>>::TTrait,
+    pending: Option<<R as Resolver<TNode>>::Iter>,
 }
 
-impl<'a, N, V> Node<Nav<'a, N, V>, NodeId> for Nav<'a, N, V>
+impl<'a, R, TNode> Node<Nav<'a, R, TNode>, NodeId> for Nav<'a, R, TNode>
 where
-    &'a N: NavChunk<V>,
-    V: Node<ChunkOrView<V>, NodeId>,
+    R: Resolver<TNode>,
+    TNode: Node<<R as Resolver<TNode>>::ChunkId, NodeId>,
 {
-    type TTrait = TraitNav<'a, N, V>;
+    type TTrait = TraitNav<'a, R, TNode>;
 
-    type TTraitIterator = V::TTraitIterator;
+    type TTraitIterator = TNode::TTraitIterator;
 
     fn get_id(&self) -> NodeId {
         self.view.get_id()
@@ -61,45 +51,41 @@ where
     fn get_trait(&self, label: Label) -> Self::TTrait {
         TraitNav {
             view: self.view.get_trait(label),
-            forest: self.forest,
+            resolver: self.resolver,
+            pending: None,
         }
     }
 }
 
-impl<'a, N, V> Iterator for TraitNav<'a, N, V>
+impl<'a, R, TNode> Iterator for TraitNav<'a, R, TNode>
 where
-    V: Node<ChunkOrView<V>, NodeId>,
-    &'a N: NavChunk<V>,
+    R: Resolver<TNode>,
+    TNode: Node<<R as Resolver<TNode>>::ChunkId, NodeId>,
 {
-    type Item = Nav<'a, N, V>;
+    type Item = Nav<'a, R, TNode>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.view.next() {
-            Some(x) => match x {
-                ChunkOrView::Single(s) => {
+        match self.pending {
+            Some(ref mut chunks) => match chunks.next() {
+                Some(chunk) => {
                     return Some(Nav {
-                        view: s,
-                        forest: self.forest,
+                        resolver: self.resolver,
+                        view: chunk,
                     });
                 }
-                ChunkOrView::Chunk(chunkId) => {
-                    let f = self.forest.find_nodes(chunkId).unwrap();
-                    let mut iter = f.iter();
-                    let item = iter.next().unwrap(); // chunk must not be empty
-                    let view = match item {
-                        ChunkOrView::Single(s) => s,
-                        ChunkOrView::Chunk(_) => {
-                            // nested chunks not supported yes
-                            todo!()
-                        }
-                    };
-                    return Some(Nav {
-                        view,
-                        forest: self.forest,
-                    });
-                }
+                None => self.pending = None,
             },
-            None => None,
+            None => {}
+        }
+
+        match self.view.next() {
+            Some(id) => {
+                let iter = self.resolver.expand(id);
+                let result = self.next().unwrap(); // Chunk must not be empty
+                self.pending = Some(iter);
+                return Some(result);
+            }
+            None => return None,
         }
     }
 }
