@@ -18,27 +18,27 @@ pub enum ChunkOrView<View> {
     Chunk(ChunkId),
 }
 
-pub struct Nav<'a, N, V>
-where
-    &'a N: Nodes<V>,
-{
-    forest: &'a Forest<&'a N, V>,
+pub struct Nav<'a, N, V> {
+    forest: &'a Forest<N, V>,
     view: V,
 }
-pub struct TraitNav<'a, N, V, T>
+
+pub struct TraitNav<'a, N, V>
 where
-    &'a N: Nodes<V>,
+    //&'a N: NavChunk<V>,
+    V: Node<ChunkOrView<V>, NodeId>,
 {
-    forest: &'a Forest<&'a N, V>,
-    view: T,
+    forest: &'a Forest<N, V>,
+    view: <V as Node<ChunkOrView<V>, NodeId>>::TTrait, //<&'a N as NavChunk<V>>::Iter,
+                                                       // pending: Option<
 }
 
 impl<'a, N, V> Node<Nav<'a, N, V>, NodeId> for Nav<'a, N, V>
 where
-    &'a N: Nodes<V>,
-    V: Node<ChunkId, NodeId>,
+    &'a N: NavChunk<V>,
+    V: Node<ChunkOrView<V>, NodeId>,
 {
-    type TTrait = TraitNav<'a, N, V, V::TTrait>;
+    type TTrait = TraitNav<'a, N, V>;
 
     type TTraitIterator = V::TTraitIterator;
 
@@ -66,14 +66,40 @@ where
     }
 }
 
-impl<'a, N, V, T> Iterator for TraitNav<'a, N, V, T>
+impl<'a, N, V> Iterator for TraitNav<'a, N, V>
 where
-    &'a N: Nodes<V>,
-    V: Node<ChunkId, NodeId>,
+    V: Node<ChunkOrView<V>, NodeId>,
+    &'a N: NavChunk<V>,
 {
     type Item = Nav<'a, N, V>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        match self.view.next() {
+            Some(x) => match x {
+                ChunkOrView::Single(s) => {
+                    return Some(Nav {
+                        view: s,
+                        forest: self.forest,
+                    });
+                }
+                ChunkOrView::Chunk(chunkId) => {
+                    let f = self.forest.find_nodes(chunkId).unwrap();
+                    let mut iter = f.iter();
+                    let item = iter.next().unwrap(); // chunk must not be empty
+                    let view = match item {
+                        ChunkOrView::Single(s) => s,
+                        ChunkOrView::Chunk(_) => {
+                            // nested chunks not supported yes
+                            todo!()
+                        }
+                    };
+                    return Some(Nav {
+                        view,
+                        forest: self.forest,
+                    });
+                }
+            },
+            None => None,
+        }
     }
 }

@@ -2,45 +2,15 @@ use crate::{
     basic_indirect::BasicNode,
     chunk::{Chunk, ChunkIterator, ChunkOffset},
     forest::{self, ChunkId, Forest},
+    nav::{ChunkOrView, NavChunk},
     Def, Label, Node, NodeId,
 };
-
-#[derive(Clone)]
-pub enum Nodes {
-    Single(BasicNode<NodeId, ChunkId>),
-    Chunk(Chunk<NodeId>),
-}
 
 pub struct TraitView<'a> {
     // Iterate this first
     basic: Option<<&'a BasicNode<NodeId, ChunkId> as Node<ChunkId, NodeId>>::TTrait>,
     // Then this
     chunk: Option<<ChunkOffset<'a, NodeId> as Node<ChunkOffset<'a, NodeId>, NodeId>>::TTrait>,
-}
-
-impl<'a> forest::Nodes<NodeView<'a>> for &'a Nodes
-where
-    Nodes: 'a,
-{
-    fn first_id(&self) -> NodeId {
-        match self {
-            Nodes::Single(n) => n.get_id(),
-            Nodes::Chunk(c) => c.first_id,
-        }
-    }
-
-    fn get(&self, id: NodeId) -> Option<NodeView<'a>> {
-        match self {
-            Nodes::Single(n) => {
-                if n.get_id() == id {
-                    Some(NodeView::Single(n))
-                } else {
-                    None
-                }
-            }
-            Nodes::Chunk(c) => c.lookup(id).map(|x| NodeView::Chunk(x)),
-        }
-    }
 }
 
 #[derive(Clone)]
@@ -131,6 +101,34 @@ impl<'a> Iterator for TraitIterator<'a> {
 }
 
 // make generic nav: Node<T> + Resolver<T> -> Nav: Node<Nav>
+
+#[derive(Clone)]
+pub enum Nodes {
+    Single(BasicNode<NodeId, ChunkId>),
+    Chunk(Chunk<NodeId>),
+}
+
+impl<'a> forest::Nodes<NodeView<'a>> for &'a Nodes {
+    fn first_id(&self) -> NodeId {
+        match self {
+            Nodes::Single(n) => n.get_id(),
+            Nodes::Chunk(c) => c.first_id,
+        }
+    }
+
+    fn get(&self, id: NodeId) -> Option<NodeView<'a>> {
+        match self {
+            Nodes::Single(n) => {
+                if n.get_id() == id {
+                    Some(NodeView::Single(n))
+                } else {
+                    None
+                }
+            }
+            Nodes::Chunk(c) => c.lookup(id).map(|x| NodeView::Chunk(x)),
+        }
+    }
+}
 
 pub struct Nav<'a> {
     forest: &'a Forest<Nodes, NodeView<'a>>,
@@ -224,18 +222,19 @@ impl<'a> Iterator for TraitNav<'a> {
     }
 }
 
-// Nav compat
+// generic Nav compat
 
 // impl<'a> NavChunk<NodeView<'a>> for &'a Nodes {
 //     type Iter = ChunkOrViewIterator<'a>;
 
 //     fn iter(&self) -> Self::Iter {
+//         self.
 //         todo!()
 //     }
 // }
 
 // enum ChunkOrViewIterator<'a> {
-//     Single(option::Iter<'a, &'a BasicNode<NodeId, ChunkId>>),
+//     Single(Option<NodeView<'a>>),
 //     Chunk(ChunkIterator<'a, NodeId>),
 // }
 
@@ -244,8 +243,8 @@ impl<'a> Iterator for TraitNav<'a> {
 
 //     fn next(&mut self) -> Option<Self::Item> {
 //         match self {
-//             ChunkOrViewIterator::Single(s) => ChunkOrView::Single(c.next()),
-//             ChunkOrViewIterator::Chunk(c) => ChunkOrView::Single(c.next()),
+//             ChunkOrViewIterator::Single(ref mut s) => s.take().map(|a| ChunkOrView::Single(a)),
+//             ChunkOrViewIterator::Chunk(ref mut c) => c.next().map(|a| ChunkOrView::Chunk(a)),
 //         }
 //     }
 // }
@@ -269,6 +268,18 @@ mod tests {
         );
 
         let n = forest.find_node(NodeId(5)).unwrap();
+        assert!(n.get_def().0 == 1);
+
+        let nav = Nav {
+            forest: &forest,
+            view: n,
+        };
+
+        let children: Vec<_> = nav.get_trait(Label(9)).collect();
+        assert!(children.len() == 0);
+
+        let n = forest.find_nodes(ChunkId(NodeId(5))).unwrap();
+        let n = forest::Nodes::get(&n, NodeId(5)).unwrap();
         assert!(n.get_def().0 == 1);
     }
 }
