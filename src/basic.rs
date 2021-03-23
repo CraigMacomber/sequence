@@ -3,30 +3,30 @@ use std::{
     iter::Cloned,
 };
 
-use im_rc::Vector;
+use crate::{util::ImSlice, Def, Label, Node, NodeId, Trait};
 
-use crate::{util::ImSlice, Node, Trait};
+// Simple tree that owns its children
 
 pub struct BasicNode {
-    id: u128,
-    def: u128,
+    id: NodeId,
+    def: Def,
     payload: Option<im_rc::Vector<u8>>,
-    traits: HashMap<u128, BasicTrait>, // TODO: Use hash map from im_rc
+    traits: HashMap<Label, BasicTrait>, // TODO: Use hash map from im_rc
 }
 
 pub struct BasicTrait {
     children: Vec<BasicNode>, // TODO: Use vector from im_rc
 }
 
-impl<'a> Node<&'a BasicNode> for &'a BasicNode {
+impl<'a> Node<&'a BasicNode, NodeId> for &'a BasicNode {
     type TTrait = &'a BasicTrait;
-    type TTraitIterator = Cloned<Keys<'a, u128, BasicTrait>>;
+    type TTraitIterator = Cloned<Keys<'a, Label, BasicTrait>>;
 
-    fn get_id(&self) -> u128 {
+    fn get_id(&self) -> NodeId {
         self.id
     }
 
-    fn get_def(&self) -> u128 {
+    fn get_def(&self) -> Def {
         self.def
     }
 
@@ -38,7 +38,7 @@ impl<'a> Node<&'a BasicNode> for &'a BasicNode {
         self.traits.keys().cloned()
     }
 
-    fn get_trait(&self, label: u128) -> Option<Self::TTrait> {
+    fn get_trait(&self, label: Label) -> Option<Self::TTrait> {
         self.traits.get(&label)
     }
 }

@@ -1,16 +1,18 @@
+//! Tree which owns its children, which may be the same type or in chunks.
+
 use std::collections::HashMap;
 
 use crate::{
     chunk::{Chunk, ChunkOffset, ChunkView},
     util::ImSlice,
-    Node, Trait,
+    Def, Label, Node, NodeId, Trait,
 };
 
 pub struct DynamicNode {
-    pub id: u128,
-    pub def: u128,
+    pub id: NodeId,
+    pub def: Def,
     pub payload: Option<im_rc::Vector<u8>>,
-    pub traits: HashMap<u128, DynamicTrait>,
+    pub traits: HashMap<Label, DynamicTrait>,
 }
 
 pub struct DynamicTrait {
@@ -33,31 +35,31 @@ impl DynamicTrait {
 
 pub enum Nodes {
     Dynamic(DynamicNode),
-    Chunk(Chunk),
+    Chunk(Chunk<NodeId>),
 }
 
 enum NodesView<'a> {
     Dynamic(&'a DynamicNode),
-    Chunk(ChunkOffset<'a>),
+    Chunk(ChunkOffset<'a, NodeId>),
 }
 
 enum TraitView<'a> {
     Dynamic(&'a DynamicTrait),
-    Chunk(ChunkView<'a>),
+    Chunk(ChunkView<'a, NodeId>),
 }
 
-impl<'a> Node<NodesView<'a>> for NodesView<'a> {
+impl<'a> Node<NodesView<'a>, NodeId> for NodesView<'a> {
     type TTrait = TraitView<'a>;
-    type TTraitIterator = Vec<u128>;
+    type TTraitIterator = Vec<Label>;
 
-    fn get_id(&self) -> u128 {
+    fn get_id(&self) -> NodeId {
         match self {
             NodesView::Dynamic(d) => d.id,
             NodesView::Chunk(c) => c.get_id(),
         }
     }
 
-    fn get_def(&self) -> u128 {
+    fn get_def(&self) -> Def {
         match self {
             NodesView::Dynamic(d) => d.def,
             NodesView::Chunk(c) => c.get_def(),
@@ -78,7 +80,7 @@ impl<'a> Node<NodesView<'a>> for NodesView<'a> {
         }
     }
 
-    fn get_trait(&self, label: u128) -> Option<Self::TTrait> {
+    fn get_trait(&self, label: Label) -> Option<Self::TTrait> {
         match self {
             NodesView::Dynamic(d) => d.traits.get(&label).map(|x| TraitView::Dynamic(x)),
             NodesView::Chunk(c) => c.get_trait(label).map(|x| TraitView::Chunk(x)),
@@ -93,7 +95,8 @@ impl<'a> Trait<NodesView<'a>> for TraitView<'a> {
             TraitView::Chunk(c) => c.get_count(),
         }
     }
-    // TODO: currently there is no trait iterator, and this is O(number of chunks). An iterator should be provided and/or this should be optimized.
+    // TODO: currently there is no trait content iterator, and this is O(number of chunks). An iterator should be provided and/or this should be optimized.
+    // TODO: use focus pattern from im:Vector?
     fn get_child(&self, index: usize) -> NodesView<'a> {
         match self {
             TraitView::Dynamic(d) => {

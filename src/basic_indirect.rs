@@ -3,29 +3,31 @@ use std::{
     iter::Cloned,
 };
 
-use crate::{util::ImSlice, Node, Trait};
+use crate::{util::ImSlice, Def, Label, Node, Trait};
 
-type ChildId = u128;
-pub struct BasicNode {
-    id: u128,
-    def: u128,
+// Simple tree that owns generic tokens instead of its children.
+// Due to issues with recursive types, this can't be used like `basic` to own its children.
+
+pub struct BasicNode<Id, Child> {
+    id: Id,
+    def: Def,
     payload: Option<im_rc::Vector<u8>>,
-    traits: HashMap<u128, BasicTrait>,
+    traits: HashMap<Label, BasicTrait<Child>>,
 }
 
-pub struct BasicTrait {
-    children: Vec<ChildId>,
+pub struct BasicTrait<Child> {
+    pub children: Vec<Child>,
 }
 
-impl<'a> Node<ChildId> for &'a BasicNode {
-    type TTrait = &'a BasicTrait;
-    type TTraitIterator = Cloned<Keys<'a, u128, BasicTrait>>;
+impl<'a, Id: Copy, Child: Copy> Node<Child, Id> for &'a BasicNode<Id, Child> {
+    type TTrait = &'a BasicTrait<Child>;
+    type TTraitIterator = Cloned<Keys<'a, Label, BasicTrait<Child>>>;
 
-    fn get_id(&self) -> u128 {
+    fn get_id(&self) -> Id {
         self.id
     }
 
-    fn get_def(&self) -> u128 {
+    fn get_def(&self) -> Def {
         self.def
     }
 
@@ -41,16 +43,16 @@ impl<'a> Node<ChildId> for &'a BasicNode {
         self.traits.keys().cloned()
     }
 
-    fn get_trait(&self, label: u128) -> Option<Self::TTrait> {
+    fn get_trait(&self, label: Label) -> Option<Self::TTrait> {
         self.traits.get(&label)
     }
 }
 
-impl<'a> Trait<ChildId> for &'a BasicTrait {
+impl<'a, Child: Copy> Trait<Child> for &'a BasicTrait<Child> {
     fn get_count(&self) -> usize {
         self.children.len()
     }
-    fn get_child(&self, index: usize) -> ChildId {
+    fn get_child(&self, index: usize) -> Child {
         self.children[index]
     }
 }
