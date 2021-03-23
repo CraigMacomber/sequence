@@ -1,9 +1,8 @@
 use crate::{
     basic_indirect::BasicNode,
-    basic_indirect::BasicTrait,
-    chunk::{Chunk, ChunkOffset, ChunkView},
+    chunk::{Chunk, ChunkIterator, ChunkOffset},
     forest::{self, ChunkId, Forest},
-    Def, Label, Node, NodeId, Trait,
+    Def, Label, Node, NodeId,
 };
 
 pub enum Nodes {
@@ -11,9 +10,11 @@ pub enum Nodes {
     Chunk(Chunk<NodeId>),
 }
 
-pub enum TraitView<'a> {
-    Single(&'a BasicTrait<ChunkId>),
-    Chunk(ChunkView<'a, NodeId>),
+pub struct TraitView<'a> {
+    // Iterate this first
+    basic: Option<<&'a BasicNode<NodeId, ChunkId> as Node<ChunkId, NodeId>>::TTrait>,
+    // Then this
+    chunk: Option<<ChunkOffset<'a, NodeId> as Node<ChunkOffset<'a, NodeId>, NodeId>>::TTrait>,
 }
 
 impl<'a> forest::Nodes<NodeView<'a>> for &'a Nodes {
@@ -80,28 +81,31 @@ impl<'a> Node<ChunkId, NodeId> for NodeView<'a> {
         }
     }
 
-    fn get_trait(&self, label: Label) -> Option<Self::TTrait> {
+    fn get_trait(&self, label: Label) -> Self::TTrait {
         match self {
-            NodeView::Single(s) => s.get_trait(label).map(|t| TraitView::Single(t)),
-            NodeView::Chunk(c) => c.get_trait(label).map(|t| TraitView::Chunk(t)),
+            NodeView::Single(s) => TraitView {
+                basic: Some(s.get_trait(label)),
+                chunk: None,
+            },
+            NodeView::Chunk(c) => TraitView {
+                basic: None,
+                chunk: Some(c.get_trait(label)),
+            },
         }
     }
 }
 
-impl<'a> Trait<ChunkId> for TraitView<'a> {
-    fn get_count(&self) -> usize {
-        match self {
-            TraitView::Single(s) => s.get_count(),
-            TraitView::Chunk(c) => c.get_count(),
-        }
-    }
+impl<'a> Iterator for TraitView<'a> {
+    type Item = ChunkId;
 
-    fn get_child(&self, index: usize) -> ChunkId {
-        match self {
-            TraitView::Single(s) => s.get_child(index),
-            // TODO: wrapper around this Node impl is going to have to re-get this child. Thats inefficient.
-            TraitView::Chunk(c) => ChunkId(c.get_child(index).get_id()),
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(ref mut c) = self.chunk {
+            return c.next().map(|i| ChunkId(i.get_id()));
         }
+        if let Some(ref mut c) = self.basic {
+            return c.next();
+        }
+        None
     }
 }
 
@@ -150,65 +154,90 @@ impl<'a> Node<Nav<'a>, NodeId> for Nav<'a> {
         self.view.get_traits().collect()
     }
 
-    fn get_trait(&self, label: Label) -> Option<Self::TTrait> {
-        self.view.get_trait(label).map(|view| TraitNav {
-            view,
+    fn get_trait(&self, label: Label) -> Self::TTrait {
+        TraitNav {
+            view: self.view.get_trait(label),
             forest: self.forest,
-        })
+        }
     }
 }
 
-impl<'a> Trait<Nav<'a>> for TraitNav<'a> {
-    fn get_count(&self) -> usize {
-        match &self.view {
-            TraitView::Single(d) => d
-                .children
-                .iter()
-                .map(|n| match self.forest.find_nodes(*n).unwrap() {
-                    Nodes::Single(_) => 1,
-                    Nodes::Chunk(c) => c.get_count(),
-                })
-                .sum(),
-            TraitView::Chunk(c) => c.get_count(),
-        }
-    }
+impl<'a> Iterator for TraitNav<'a> {
+    type Item = Nav<'a>;
 
-    fn get_child(&self, index: usize) -> Nav<'a> {
-        match &self.view {
-            TraitView::Single(d) => {
-                let mut count: usize = 0;
-                for n in &d.children {
-                    match self.forest.find_nodes(*n).unwrap() {
-                        Nodes::Single(d) => {
-                            if count == index {
-                                return Nav {
-                                    forest: self.forest,
-                                    view: NodeView::Single(d),
-                                };
-                            }
-                            count += 1;
-                        }
-                        Nodes::Chunk(c) => {
-                            let more = c.get_count();
-                            if count + more > index {
-                                return Nav {
-                                    forest: self.forest,
-                                    view: NodeView::Chunk(ChunkOffset {
-                                        view: c.view(),
-                                        offset: (index - count) as u32,
-                                    }),
-                                };
-                            }
-                            count += more;
-                        }
-                    };
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(ref mut c) = self.view.chunk {
+            let r = c.next();
+            match r {
+                Some(rr) => {
+                    return Some(Nav {
+                        forest: self.forest,
+                        view: NodeView::Chunk(rr),
+                    });
                 }
-                panic!("trait index out of range")
+                None => {
+                    self.view.chunk = None;
+                }
             }
-            TraitView::Chunk(c) => Nav {
-                forest: self.forest,
-                view: NodeView::Chunk(c.get_child(index)),
-            },
         }
+        if let Some(ref mut c) = self.view.basic {
+            let r = c.next();
+            match r {
+                Some(rr) => {
+                    let nodes = self.forest.find_nodes(rr).unwrap();
+                    match nodes {
+                        Nodes::Single(z) => {
+                            return Some(Nav {
+                                forest: self.forest,
+                                view: NodeView::Single(z),
+                            });
+                        }
+                        Nodes::Chunk(z) => {
+                            let xx = z.view();
+                            let mut iterator = ChunkIterator::View(ChunkOffset {
+                                offset: 0,
+                                view: xx,
+                            });
+                            let result = iterator.next().unwrap(); // Fails if chunk is empty
+                            self.view.chunk = Some(iterator);
+                            return Some(Nav {
+                                forest: self.forest,
+                                view: NodeView::Chunk(result),
+                            });
+                        }
+                    }
+                }
+                None => {
+                    self.view.chunk = None;
+                }
+            }
+        }
+        None
     }
 }
+
+// Nav compat
+
+// impl<'a> NavChunk<NodeView<'a>> for &'a Nodes {
+//     type Iter = ChunkOrViewIterator<'a>;
+
+//     fn iter(&self) -> Self::Iter {
+//         todo!()
+//     }
+// }
+
+// enum ChunkOrViewIterator<'a> {
+//     Single(option::Iter<'a, &'a BasicNode<NodeId, ChunkId>>),
+//     Chunk(ChunkIterator<'a, NodeId>),
+// }
+
+// impl<'a> Iterator for ChunkOrViewIterator<'a> {
+//     type Item = ChunkOrView<NodeView<'a>>;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         match self {
+//             ChunkOrViewIterator::Single(s) => ChunkOrView::Single(c.next()),
+//             ChunkOrViewIterator::Chunk(c) => ChunkOrView::Single(c.next()),
+//         }
+//     }
+// }

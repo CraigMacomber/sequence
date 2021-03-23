@@ -1,27 +1,27 @@
 use std::{
     collections::{hash_map::Keys, HashMap},
     iter::Cloned,
+    slice,
 };
 
-use crate::{util::ImSlice, Def, Label, Node, Trait};
+use crate::{util::ImSlice, Def, Label, Node};
 
 // Simple tree that owns generic tokens instead of its children.
 // Due to issues with recursive types, this can't be used like `basic` to own its children.
+// type BasicResucrsive<Id> = BasicNode<Id, BasicResucrsive<Id>>;
 
 pub struct BasicNode<Id, Child> {
     id: Id,
     def: Def,
     payload: Option<im_rc::Vector<u8>>,
-    traits: HashMap<Label, BasicTrait<Child>>,
+    traits: HashMap<Label, Vec<Child>>,
 }
 
-pub struct BasicTrait<Child> {
-    pub children: Vec<Child>,
-}
+pub type BasicTrait<Child> = Vec<Child>;
 
-impl<'a, Id: Copy, Child: Copy> Node<Child, Id> for &'a BasicNode<Id, Child> {
-    type TTrait = &'a BasicTrait<Child>;
-    type TTraitIterator = Cloned<Keys<'a, Label, BasicTrait<Child>>>;
+impl<'a, Id: Copy, Child: Clone> Node<Child, Id> for &'a BasicNode<Id, Child> {
+    type TTrait = Cloned<slice::Iter<'a, Child>>;
+    type TTraitIterator = Cloned<Keys<'a, Label, Vec<Child>>>;
 
     fn get_id(&self) -> Id {
         self.id
@@ -43,16 +43,14 @@ impl<'a, Id: Copy, Child: Copy> Node<Child, Id> for &'a BasicNode<Id, Child> {
         self.traits.keys().cloned()
     }
 
-    fn get_trait(&self, label: Label) -> Option<Self::TTrait> {
-        self.traits.get(&label)
+    fn get_trait(&self, label: Label) -> Self::TTrait {
+        self.traits
+            .get(&label)
+            .map_or(BasicNode::<Id, Child>::EMPTY.iter(), |x| x.iter())
+            .cloned()
     }
 }
 
-impl<'a, Child: Copy> Trait<Child> for &'a BasicTrait<Child> {
-    fn get_count(&self) -> usize {
-        self.children.len()
-    }
-    fn get_child(&self, index: usize) -> Child {
-        self.children[index]
-    }
+impl<'a, Id, Child> BasicNode<Id, Child> {
+    const EMPTY: [Child; 0] = [];
 }

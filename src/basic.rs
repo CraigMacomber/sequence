@@ -1,9 +1,10 @@
 use std::{
     collections::{hash_map::Keys, HashMap},
     iter::Cloned,
+    slice,
 };
 
-use crate::{util::ImSlice, Def, Label, Node, NodeId, Trait};
+use crate::{util::ImSlice, Def, Label, Node, NodeId};
 
 // Simple tree that owns its children
 
@@ -11,16 +12,12 @@ pub struct BasicNode {
     id: NodeId,
     def: Def,
     payload: Option<im_rc::Vector<u8>>,
-    traits: HashMap<Label, BasicTrait>, // TODO: Use hash map from im_rc
-}
-
-pub struct BasicTrait {
-    children: Vec<BasicNode>, // TODO: Use vector from im_rc
+    traits: HashMap<Label, Vec<BasicNode>>, // TODO: Use hash map from im_rc
 }
 
 impl<'a> Node<&'a BasicNode, NodeId> for &'a BasicNode {
-    type TTrait = &'a BasicTrait;
-    type TTraitIterator = Cloned<Keys<'a, Label, BasicTrait>>;
+    type TTrait = slice::Iter<'a, BasicNode>;
+    type TTraitIterator = Cloned<Keys<'a, Label, Vec<BasicNode>>>;
 
     fn get_id(&self) -> NodeId {
         self.id
@@ -38,16 +35,12 @@ impl<'a> Node<&'a BasicNode, NodeId> for &'a BasicNode {
         self.traits.keys().cloned()
     }
 
-    fn get_trait(&self, label: Label) -> Option<Self::TTrait> {
-        self.traits.get(&label)
+    fn get_trait(&self, label: Label) -> Self::TTrait {
+        self.traits
+            .get(&label)
+            .map_or(EMPTY, |x| &x[..])
+            .into_iter()
     }
 }
 
-impl<'a> Trait<&'a BasicNode> for &'a BasicTrait {
-    fn get_count(&self) -> usize {
-        self.children.len()
-    }
-    fn get_child(&self, index: usize) -> &'a BasicNode {
-        &self.children[index]
-    }
-}
+const EMPTY: &[BasicNode] = &[];

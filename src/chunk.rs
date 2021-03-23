@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
     util::{slice_with_length, ImSlice},
-    Def, Label, Node, Trait,
+    Def, Label, Node,
 };
 
 pub struct Chunk<Id> {
@@ -116,7 +116,7 @@ impl<'a, Id: IdConstraint<Id>> Node<ChunkOffset<'a, Id>, Id> for ChunkOffset<'a,
 where
     Id: std::ops::Add<usize>,
 {
-    type TTrait = ChunkView<'a, Id>;
+    type TTrait = ChunkIterator<'a, Id>;
 
     fn get_id(&self) -> Id {
         self.view.first_id + self.offset as usize
@@ -144,55 +144,45 @@ where
         self.view.schema.traits.keys().cloned()
     }
 
-    fn get_trait(&self, label: Label) -> Option<Self::TTrait> {
+    fn get_trait(&self, label: Label) -> Self::TTrait {
         match self.view.schema.traits.get(&label) {
-            Some(x) => Some(ChunkView {
-                schema: &x.schema,
-                data: slice_with_length(
-                    self.data(),
-                    x.byte_offset as usize,
-                    x.schema.bytes_per_node as usize,
-                ),
-                first_id: self.first_id() + x.id_offset as usize,
+            Some(x) => ChunkIterator::View(ChunkOffset {
+                offset: 0,
+                view: ChunkView {
+                    schema: &x.schema,
+                    data: slice_with_length(
+                        self.data(),
+                        x.byte_offset as usize,
+                        x.schema.bytes_per_node as usize,
+                    ),
+                    first_id: self.first_id() + x.id_offset as usize,
+                },
             }),
-            None => None,
+            None => ChunkIterator::Empty,
         }
     }
 }
 
-// TODO: delete or use this
-impl<'a, Id: Clone> Iterator for ChunkOffset<'a, Id> {
+pub enum ChunkIterator<'a, T> {
+    View(ChunkOffset<'a, T>),
+    Empty,
+}
+
+impl<'a, Id: Clone> Iterator for ChunkIterator<'a, Id> {
     type Item = ChunkOffset<'a, Id>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.offset < self.view.schema.node_count {
-            let out = self.clone();
-            self.offset += 1;
-            Some(out)
-        } else {
-            None
-        }
-    }
-}
-
-impl<'a, Id: IdConstraint<Id>> Trait<ChunkOffset<'a, Id>> for ChunkView<'a, Id> {
-    fn get_count(&self) -> usize {
-        self.schema.node_count as usize
-    }
-    fn get_child(&self, index: usize) -> ChunkOffset<'a, Id> {
-        let offset = self.schema.bytes_per_node as usize * index as usize;
-        let view = ChunkView {
-            first_id: self.first_id + (index * self.schema.id_stride as usize),
-            schema: self.schema,
-            data: slice_with_length(
-                self.data.clone(),
-                offset,
-                self.schema.bytes_per_node as usize,
-            ),
-        };
-        ChunkOffset::<'a> {
-            view,
-            offset: index as u32,
+        match self {
+            ChunkIterator::View(ref mut offset) => {
+                if offset.offset < offset.view.schema.node_count {
+                    let out = offset.clone();
+                    offset.offset += 1;
+                    Some(out)
+                } else {
+                    None
+                }
+            }
+            ChunkIterator::Empty => None,
         }
     }
 }

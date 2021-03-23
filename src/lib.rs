@@ -11,6 +11,7 @@ mod chunk;
 mod dynamic;
 mod forest;
 mod indirect_dynamic;
+mod nav;
 mod util;
 
 #[derive(Clone, PartialEq, Eq, Ord, Hash, PartialOrd, Copy)]
@@ -38,7 +39,7 @@ impl Sub<NodeId> for NodeId {
 }
 
 pub trait Node<TChild, Id> {
-    type TTrait: Trait<TChild>;
+    type TTrait: Iterator<Item = TChild>;
     type TTraitIterator: IntoIterator<Item = Label>;
 
     fn get_id(&self) -> Id;
@@ -46,12 +47,7 @@ pub trait Node<TChild, Id> {
     fn get_payload(&self) -> Option<ImSlice>;
 
     fn get_traits(&self) -> Self::TTraitIterator;
-    fn get_trait(&self, label: Label) -> Option<Self::TTrait>;
-}
-
-pub trait Trait<TChild> {
-    fn get_count(&self) -> usize;
-    fn get_child(&self, index: usize) -> TChild;
+    fn get_trait(&self, label: Label) -> Self::TTrait;
 }
 
 #[cfg(test)]

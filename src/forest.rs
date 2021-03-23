@@ -8,6 +8,8 @@ pub struct ChunkId(pub NodeId);
 
 pub trait Nodes<View> {
     fn first_id(&self) -> NodeId;
+
+    // gets an node with an id owned by this chunk
     fn get(&self, id: NodeId) -> Option<View>;
 }
 
@@ -20,7 +22,8 @@ where
 {
     // TODO: Nodes store their id (otherwise get can't be implemented), which is redundant with one in map.
     map: im_rc::OrdMap<ChunkId, TNodes>,
-    phantom: PhantomData<dyn Nodes<View>>,
+    // TODO: is this right?
+    phantom: PhantomData<fn(TNodes) -> View>,
     // TODO parent information
 }
 
