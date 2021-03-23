@@ -11,7 +11,7 @@ mod basic_indirect;
 mod chunk;
 mod dynamic;
 mod forest;
-mod indirect_dynamic;
+mod indirect_static;
 mod nav;
 mod util;
 

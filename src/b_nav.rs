@@ -4,7 +4,7 @@ use crate::{
     basic_indirect::BasicNode,
     chunk::{Chunk, ChunkIterator, ChunkOffset},
     forest::{self, ChunkId},
-    indirect_dynamic::{Child, NodeView},
+    indirect_static::{Child, NodeView},
     nav::{Nav, Resolver},
     Node, NodeId,
 };
