@@ -9,3 +9,11 @@ edition = "2018"
 [dependencies]
 im-rc = "15.0.0"
 num-integer = "0.1.44"
+rand = "0.8.3"
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "benchmarks"
+harness = false

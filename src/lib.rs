@@ -5,13 +5,12 @@ use util::ImSlice;
 extern crate im_rc;
 extern crate num_integer;
 
-mod b_nav;
 mod basic;
 mod basic_indirect;
 mod chunk;
-mod dynamic;
 mod forest;
-mod indirect_static;
+mod indirect;
+mod indirect_nav;
 mod nav;
 mod util;
 

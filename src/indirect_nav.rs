@@ -1,14 +1,17 @@
-//! Hookup to Generic Nav. This takes indirect_dynamic::NodeView, and wraps it with a recursive nav type that handles child lookup using Forest.
+//! Hookup to indirect node to Nav.
+//! This takes indirect::NodeView, and wraps it with a recursive nav type that handles child lookup using Forest.
+//! uses `nav` to do this.
 
 use crate::{
     basic_indirect::BasicNode,
     chunk::{Chunk, ChunkIterator, ChunkOffset},
     forest::{self, ChunkId},
-    indirect_static::{Child, NodeView},
+    indirect::{Child, NodeView},
     nav::{Nav, Resolver},
     Node, NodeId,
 };
 
+/// Tree data, stored in the forest, keyed by the first id in the chunk.
 #[derive(Clone)]
 pub enum NavChunk {
     Single(BasicNode<NodeId, ChunkId>),
@@ -81,6 +84,9 @@ impl Forest {
 
 #[cfg(test)]
 mod tests {
+    use rand::Rng;
+    use std::{cell::RefCell, rc::Rc};
+
     use super::*;
     use crate::{Def, Label};
 
@@ -109,6 +115,39 @@ mod tests {
         let n = forest::Nodes::get(&n, NodeId(5)).unwrap();
         assert!(n.get_def().0 == 1);
     }
-}
 
-//// indirect dynamic 2
+    #[test]
+    fn big_tree() {
+        let mut forest = Forest::new();
+        let rng = Rc::new(RefCell::new(rand::thread_rng()));
+        let newNodeId = || -> NodeId { NodeId(rng.borrow_mut().gen()) };
+        let newChunkId = || -> ChunkId { ChunkId(newNodeId()) };
+        let newLabel = || -> Label { Label(rng.borrow_mut().gen()) };
+        let newDef = || -> Def { Def(rng.borrow_mut().gen()) };
+
+        for i in 0..1000000 {
+            let id = newNodeId();
+            forest.map.insert(
+                ChunkId(id),
+                NavChunk::Single(BasicNode {
+                    def: newDef(),
+                    id,
+                    payload: None,
+                    traits: im_rc::HashMap::new(),
+                }),
+            );
+        }
+
+        let an_id = forest.map.get_min().unwrap().0 .0;
+
+        let n = forest.find_node(an_id).unwrap();
+
+        let nav = forest.nav_from(an_id).unwrap();
+
+        let children: Vec<_> = nav.get_trait(Label(9)).collect();
+        assert!(children.len() == 0);
+
+        let n = forest.find_nodes(ChunkId(an_id)).unwrap();
+        let n = forest::Nodes::get(&n, an_id).unwrap();
+    }
+}

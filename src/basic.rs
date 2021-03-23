@@ -1,3 +1,5 @@
+//! Simple tree that owns its children
+
 use std::{
     collections::{hash_map::Keys, HashMap},
     iter::Cloned,
@@ -5,8 +7,6 @@ use std::{
 };
 
 use crate::{util::ImSlice, Def, Label, Node, NodeId};
-
-// Simple tree that owns its children
 
 pub struct BasicNode {
     id: NodeId,

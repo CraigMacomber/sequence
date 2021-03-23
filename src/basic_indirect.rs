@@ -1,10 +1,10 @@
+//! Simple tree that owns generic tokens instead of its children.
+//! Due to issues with recursive types, this can't be used like `basic` to own its children.
+//! type BasicRecursive<Id> = BasicNode<Id, BasicRecursive<Id>>;
+
 use std::{iter::Cloned, slice};
 
 use crate::{util::ImSlice, Def, Label, Node};
-
-// Simple tree that owns generic tokens instead of its children.
-// Due to issues with recursive types, this can't be used like `basic` to own its children.
-// type BasicResucrsive<Id> = BasicNode<Id, BasicResucrsive<Id>>;
 
 #[derive(Clone)]
 pub struct BasicNode<Id, Child> {
@@ -13,8 +13,6 @@ pub struct BasicNode<Id, Child> {
     pub payload: Option<im_rc::Vector<u8>>,
     pub traits: im_rc::HashMap<Label, Vec<Child>>,
 }
-
-pub type BasicTrait<Child> = Vec<Child>;
 
 impl<'a, Id: Copy, Child: Clone> Node<Child, Id> for &'a BasicNode<Id, Child> {
     type TTrait = Cloned<slice::Iter<'a, Child>>;
