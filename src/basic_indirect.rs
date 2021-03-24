@@ -9,7 +9,8 @@ use crate::{util::ImSlice, Def, Label, Node};
 #[derive(Clone)]
 pub struct BasicNode<Child> {
     pub def: Def,
-    pub payload: Option<im_rc::Vector<u8>>,
+    // Payload is often not used, so indirect it to keep the size down.
+    pub payload: Option<Box<im_rc::Vector<u8>>>,
     // TODO: use im::Vector here
     pub traits: im_rc::HashMap<Label, Vec<Child>>,
 }

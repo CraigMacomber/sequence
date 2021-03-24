@@ -114,10 +114,5 @@ mod tests {
         let n = forest.find_nodes(ChunkId(NodeId(5))).unwrap();
         let n = forest::Nodes::get(&n, NodeId(5), NodeId(5)).unwrap();
         assert!(n.get_def().0 == 1);
-
-        // assert_eq!(
-        //     mem::size_of::<Chunk>(),
-        //     mem::size_of::<BasicNode<ChunkId>>()
-        // );
     }
 }

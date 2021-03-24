@@ -57,11 +57,3 @@ pub trait Node<TChild> {
 pub trait HasId {
     fn get_id(&self) -> NodeId;
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}

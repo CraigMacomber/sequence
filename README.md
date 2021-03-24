@@ -84,6 +84,14 @@ Filters could be added at any granularity of bits (not just every 8).
 Early work in progress.
 Nothing close to ready for use.
 
+### Perf
+
+Traverse a 1 million node tree in under a second, and insert those million nodes in 3 seconds (as independent copy on write inserts).
+
+If the data is mostly big chunks, traversal is 0.2 seconds, and inserting the chunks (5k nodes each) is just 0.004 seconds.
+
+All nodes can be looked up by their Id, but I'm not tracking parents yet (that won't change the algorithmic complexity, but will add significant a constant factor)
+
 ## Ideas
 
 Maybe use https://docs.rs/sanakirja/1.2.0/sanakirja/index.html (or specifically sanakirja-core if on the web) as its a B-Tree that supports paging and copy on write. Might work much better for server case (on disk cache, multi threaded etc).

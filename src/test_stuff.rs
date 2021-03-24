@@ -1,9 +1,15 @@
-use crate::{basic_indirect::BasicNode, Def, Label, Node, NodeId};
-use crate::{forest::ChunkId, indirect_nav::*};
+use crate::{basic_indirect::BasicNode, Def, IdOffset, Label, Node, NodeId};
+use crate::{
+    chunk::{Chunk, ChunkSchema, OffsetSchema, RootChunkSchema},
+    forest::ChunkId,
+    indirect_nav::*,
+};
 use rand::Rng;
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-pub fn big_tree(size: usize) -> (Forest, NodeId) {
+pub const PER_CHUNK_ITEM: usize = 5;
+
+pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeId) {
     let mut forest = Forest::new();
     let rng = Rc::new(RefCell::new(rand::thread_rng()));
     let new_node_id = || -> NodeId { NodeId(rng.borrow_mut().gen()) };
@@ -56,6 +62,98 @@ pub fn big_tree(size: usize) -> (Forest, NodeId) {
         nodes.push(id);
     }
 
+    // color channel schema
+    let sub_schema = ChunkSchema {
+        def: new_def(),
+        node_count: 1,
+        bytes_per_node: 1,
+        id_stride: 1,
+        payload_size: Some(1),
+        traits: HashMap::new(),
+    };
+
+    // Color schema (rgba)
+    let schema = ChunkSchema {
+        def: new_def(),
+        node_count: chunk_size as u32,
+        bytes_per_node: 4,
+        id_stride: 5,
+        payload_size: None,
+        traits: vec![
+            (
+                new_label(),
+                OffsetSchema {
+                    id_offset: IdOffset(1),
+                    byte_offset: 0,
+                    schema: sub_schema.clone(),
+                },
+            ),
+            (
+                new_label(),
+                OffsetSchema {
+                    id_offset: IdOffset(2),
+                    byte_offset: 1,
+                    schema: sub_schema.clone(),
+                },
+            ),
+            (
+                new_label(),
+                OffsetSchema {
+                    id_offset: IdOffset(3),
+                    byte_offset: 2,
+                    schema: sub_schema.clone(),
+                },
+            ),
+            (
+                new_label(),
+                OffsetSchema {
+                    id_offset: IdOffset(4),
+                    byte_offset: 3,
+                    schema: sub_schema.clone(),
+                },
+            ),
+        ]
+        .into_iter()
+        .collect(),
+    };
+
+    if chunks > 0 {
+        let chunk_schema = Rc::new(RootChunkSchema::new(schema));
+
+        for _ in 0..chunks {
+            let id = new_node_id();
+            forest.insert(
+                ChunkId(id),
+                NavChunk::Chunk(Chunk {
+                    schema: chunk_schema.clone(),
+                    data: std::iter::repeat(&[1u8, 2, 3, 4])
+                        .take(chunk_size)
+                        .flat_map(|x| x.iter())
+                        .cloned()
+                        .collect(),
+                }),
+            );
+
+            let parent_index = rng.borrow_mut().gen_range(0..nodes.len());
+            let parent_id = nodes[parent_index];
+
+            let parent = forest.find_nodes_mut(ChunkId(parent_id)).unwrap();
+
+            match parent {
+                NavChunk::Single(basic) => {
+                    basic
+                        .traits
+                        .entry(label)
+                        .or_insert_with(|| vec![])
+                        .push(ChunkId(id));
+                }
+                NavChunk::Chunk(_) => {
+                    panic!();
+                }
+            };
+        }
+    }
+
     (forest, root_id)
 }
 
@@ -75,18 +173,49 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
+    fn basic_nodes() {
         let size = 1000;
-        let (forest, id) = big_tree(size);
+        let (forest, id) = big_tree(size, 0, 1000);
         let nav = forest.nav_from(id).unwrap();
         assert_eq!(walk_all(nav), size);
     }
 
     #[test]
-    fn big() {
-        let size = 10000000;
-        let (forest, id) = big_tree(size);
+    fn with_chunks() {
+        const PER_CHUNK_ITEM: usize = 5;
+        let size = 100;
+        let chunks = 1000;
+        let chunk_size = 1000;
+        let (forest, id) = big_tree(size, chunks, chunk_size);
         let nav = forest.nav_from(id).unwrap();
-        assert_eq!(walk_all(nav), size);
+        let n = walk_all(nav);
+        assert_eq!(n, size + chunks * chunk_size * PER_CHUNK_ITEM);
     }
+
+    #[test]
+    fn with_chunks2() {
+        let size = 100;
+        let chunks = 200;
+        let chunk_size = 1000;
+        let (forest, id) = big_tree(size, chunks, chunk_size);
+        let nav = forest.nav_from(id).unwrap();
+        let n = walk_all(nav);
+        assert_eq!(n, size + chunks * chunk_size * PER_CHUNK_ITEM);
+    }
+
+    // #[test]
+    // fn big() {
+    //     let size = 100000;
+    //     let (forest, id) = big_tree(size, 0, 1000);
+    //     let nav = forest.nav_from(id).unwrap();
+    //     assert_eq!(walk_all(nav), size);
+    // }
+
+    // #[test]
+    // fn print_sizes() {
+    //     assert_eq!(
+    //         std::mem::size_of::<Chunk>(),
+    //         std::mem::size_of::<BasicNode<ChunkId>>()
+    //     );
+    // }
 }
