@@ -6,12 +6,12 @@ use crate::{
 
 pub enum Child<'a> {
     Id(ChunkId),
-    Chunk(ChunkOffset<'a, NodeId>),
+    Chunk(ChunkOffset<'a>),
 }
 
 pub enum TraitView<'a> {
     Basic(<&'a BasicNode<ChunkId> as Node<ChunkId>>::TTrait),
-    Chunk(<ChunkOffset<'a, NodeId> as Node<ChunkOffset<'a, NodeId>>>::TTrait),
+    Chunk(<ChunkOffset<'a> as Node<ChunkOffset<'a>>>::TTrait),
 }
 
 #[derive(Clone)]
@@ -23,7 +23,7 @@ pub struct BasicView<'a> {
 #[derive(Clone)]
 pub enum NodeView<'a> {
     Single(BasicView<'a>),
-    Chunk(ChunkOffset<'a, NodeId>),
+    Chunk(ChunkOffset<'a>),
     // TODO: support undownloaded chunks blobs (find can return which blobs and at what offset the node is at)
     // TODO: support undownloaded subtrees that arn't chunks: find returns iterator of candidate trees using bloom filters
     // TODO: these types are write optimized. Consider supporting read/size optimized types (ex: using byte array instead of im's Vector)
@@ -34,13 +34,6 @@ impl<'a> Node<Child<'a>> for NodeView<'a> {
     type TTrait = TraitView<'a>;
 
     type TTraitIterator = TraitIterator<'a>;
-
-    // fn get_id(&self) -> NodeId {
-    //     match self {
-    //         NodeView::Single(s) => s.get_id(),
-    //         NodeView::Chunk(c) => c.get_id(),
-    //     }
-    // }
 
     fn get_def(&self) -> Def {
         match self {
@@ -93,7 +86,7 @@ impl<'a> Iterator for TraitView<'a> {
 
 pub enum TraitIterator<'a> {
     Single(<&'a BasicNode<ChunkId> as Node<ChunkId>>::TTraitIterator),
-    Chunk(<ChunkOffset<'a, NodeId> as Node<ChunkOffset<'a, NodeId>>>::TTraitIterator),
+    Chunk(<ChunkOffset<'a> as Node<ChunkOffset<'a>>>::TTraitIterator),
 }
 
 impl<'a> Iterator for TraitIterator<'a> {

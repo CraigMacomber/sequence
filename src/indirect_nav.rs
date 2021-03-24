@@ -8,7 +8,7 @@ use crate::{
     forest::{self, ChunkId},
     indirect::{BasicView, Child, NodeView},
     nav::{Nav, Resolver},
-    Node, NodeId,
+    NodeId,
 };
 
 /// Tree data, stored in the forest, keyed by the first id in the chunk.
@@ -36,7 +36,7 @@ impl<'a> forest::Nodes for &'a NavChunk {
 
 pub type Forest = forest::Forest<NavChunk>;
 pub enum Expander<'a> {
-    Chunk(ChunkIterator<'a, NodeId>),
+    Chunk(ChunkIterator<'a>),
     Single(NodeView<'a>),
     Empty,
 }
@@ -87,11 +87,9 @@ impl Forest {
 
 #[cfg(test)]
 mod tests {
-    use rand::Rng;
-    use std::{cell::RefCell, mem, rc::Rc};
 
     use super::*;
-    use crate::{Def, Label};
+    use crate::{Def, Label, Node};
 
     #[test]
     fn it_works() {
@@ -117,11 +115,9 @@ mod tests {
         let n = forest::Nodes::get(&n, NodeId(5), NodeId(5)).unwrap();
         assert!(n.get_def().0 == 1);
 
-        // assert_eq!(0, mem::size_of::<NavChunk>());
-
-        assert_eq!(
-            mem::size_of::<Chunk>(),
-            mem::size_of::<BasicNode<ChunkId>>()
-        );
+        // assert_eq!(
+        //     mem::size_of::<Chunk>(),
+        //     mem::size_of::<BasicNode<ChunkId>>()
+        // );
     }
 }

@@ -1,13 +1,9 @@
 //! Sequence of trees with identical schema and sequential ids (depth first pre-order).
 //! Owns the content. Compressed (one copy of schema, rest as blob)
 
-use std::{
-    iter::Cloned,
-    ops::{Add, Sub},
-};
+use std::iter::Cloned;
 
 use crate::{
-    forest::ChunkId,
     util::{slice_with_length, ImSlice},
     Def, HasId, IdOffset, Label, Node, NodeId,
 };
@@ -40,28 +36,14 @@ pub struct OffsetSchema {
 // Views
 
 #[derive(Clone)]
-pub struct ChunkView<'a, Id> {
-    first_id: Id,
+pub struct ChunkView<'a> {
+    first_id: NodeId,
     schema: &'a ChunkSchema,
     data: ImSlice<'a>,
 }
 
-pub trait IdConstraint<Id>:
-    Copy + Ord + Sub<Id, Output = IdOffset> + Add<IdOffset, Output = Id>
-{
-}
-
-impl<Id: Copy + Clone + Ord + Sub<Id, Output = IdOffset> + Add<IdOffset, Output = Id>>
-    IdConstraint<Id> for Id
-{
-}
-
 impl<'a> Chunk {
-    pub fn lookup<Id: IdConstraint<Id>>(
-        &'a self,
-        first_id: Id,
-        id: Id,
-    ) -> Option<ChunkOffset<'a, Id>> {
+    pub fn lookup(&'a self, first_id: NodeId, id: NodeId) -> Option<ChunkOffset<'a>> {
         if id < first_id {
             None
         } else if id < first_id + IdOffset(self.schema.id_stride * self.get_count() as u32) {
@@ -88,8 +70,8 @@ impl<'a> Chunk {
 }
 
 #[derive(Clone)]
-pub struct ChunkOffset<'a, Id> {
-    pub view: ChunkView<'a, Id>,
+pub struct ChunkOffset<'a> {
+    pub view: ChunkView<'a>,
     pub offset: u32, // index of current node in ChunkView
 }
 
@@ -97,7 +79,7 @@ impl Chunk {
     pub fn get_count(&self) -> usize {
         self.schema.node_count as usize
     }
-    pub fn view<Id: Copy>(&self, id: Id) -> ChunkView<Id> {
+    pub fn view(&self, id: NodeId) -> ChunkView {
         ChunkView {
             first_id: id,
             schema: &self.schema,
@@ -106,8 +88,8 @@ impl Chunk {
     }
 }
 
-impl<'a, Id: IdConstraint<Id>> ChunkOffset<'a, Id> {
-    fn first_id(&self) -> Id {
+impl<'a> ChunkOffset<'a> {
+    fn first_id(&self) -> NodeId {
         self.view.first_id + IdOffset(self.offset as u32 * self.view.schema.id_stride as u32)
     }
 
@@ -120,15 +102,8 @@ impl<'a, Id: IdConstraint<Id>> ChunkOffset<'a, Id> {
 }
 
 // Views first item as chunk in as node
-impl<'a, Id: IdConstraint<Id>> Node<ChunkOffset<'a, Id>> for ChunkOffset<'a, Id>
-where
-    Id: std::ops::Add<IdOffset>,
-{
-    type TTrait = ChunkIterator<'a, Id>;
-
-    // fn get_id(&self) -> Id {
-    //     self.view.first_id + IdOffset(self.offset)
-    // }
+impl<'a> Node<ChunkOffset<'a>> for ChunkOffset<'a> {
+    type TTrait = ChunkIterator<'a>;
 
     fn get_def(&self) -> Def {
         self.view.schema.def
@@ -172,19 +147,19 @@ where
 }
 
 // Views first item as chunk in as node
-impl<'a> HasId for ChunkOffset<'a, NodeId> {
+impl<'a> HasId for ChunkOffset<'a> {
     fn get_id(&self) -> NodeId {
         self.view.first_id + IdOffset(self.offset)
     }
 }
 
-pub enum ChunkIterator<'a, T> {
-    View(ChunkOffset<'a, T>),
+pub enum ChunkIterator<'a> {
+    View(ChunkOffset<'a>),
     Empty,
 }
 
-impl<'a, Id: Clone> Iterator for ChunkIterator<'a, Id> {
-    type Item = ChunkOffset<'a, Id>;
+impl<'a> Iterator for ChunkIterator<'a> {
+    type Item = ChunkOffset<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
