@@ -99,7 +99,7 @@ mod tests {
             NavChunk::Single(BasicNode {
                 def: Def(1),
                 payload: None,
-                traits: im_rc::HashMap::new(),
+                traits: im_rc::HashMap::default(),
             }),
         );
 

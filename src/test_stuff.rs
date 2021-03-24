@@ -26,7 +26,7 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
         NavChunk::Single(BasicNode {
             def,
             payload: None,
-            traits: im_rc::HashMap::new(),
+            traits: im_rc::HashMap::default(),
         }),
     );
 
@@ -37,7 +37,7 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
             NavChunk::Single(BasicNode {
                 def,
                 payload: None,
-                traits: im_rc::HashMap::new(),
+                traits: im_rc::HashMap::default(),
             }),
         );
 
@@ -69,7 +69,7 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
         bytes_per_node: 1,
         id_stride: 1,
         payload_size: Some(1),
-        traits: HashMap::new(),
+        traits: HashMap::default(),
     };
 
     // Color schema (rgba)
@@ -122,15 +122,17 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
 
         for _ in 0..chunks {
             let id = new_node_id();
+            let data: im_rc::Vector<u8> = std::iter::repeat(&[1u8, 2, 3, 4])
+                .take(chunk_size)
+                .flat_map(|x| x.iter())
+                .cloned()
+                .collect();
+            debug_assert_eq!(data.len(), chunk_size * 4);
             forest.insert(
                 ChunkId(id),
                 NavChunk::Chunk(Chunk {
                     schema: chunk_schema.clone(),
-                    data: std::iter::repeat(&[1u8, 2, 3, 4])
-                        .take(chunk_size)
-                        .flat_map(|x| x.iter())
-                        .cloned()
-                        .collect(),
+                    data: data.into(),
                 }),
             );
 
@@ -183,9 +185,9 @@ mod tests {
     #[test]
     fn with_chunks() {
         const PER_CHUNK_ITEM: usize = 5;
-        let size = 100;
-        let chunks = 1000;
-        let chunk_size = 1000;
+        let size = 10;
+        let chunks = 10;
+        let chunk_size = 100;
         let (forest, id) = big_tree(size, chunks, chunk_size);
         let nav = forest.nav_from(id).unwrap();
         let n = walk_all(nav);
@@ -211,11 +213,17 @@ mod tests {
     //     assert_eq!(walk_all(nav), size);
     // }
 
-    // #[test]
-    // fn print_sizes() {
-    //     assert_eq!(
-    //         std::mem::size_of::<Chunk>(),
-    //         std::mem::size_of::<BasicNode<ChunkId>>()
-    //     );
-    // }
+    #[test]
+    fn print_sizes() {
+        println!(
+            "Chunk:{} BasicNode:{} NavChunk:{}, ahash ImMap:{}, Default ImMap:{}, stdMap:{}",
+            std::mem::size_of::<Chunk>(),
+            std::mem::size_of::<BasicNode<ChunkId>>(),
+            std::mem::size_of::<NavChunk>(),
+            std::mem::size_of::<im_rc::HashMap<Label, Vec<ChunkId>, ahash::RandomState>>(),
+            std::mem::size_of::<im_rc::HashMap<Label, Vec<ChunkId>>>(),
+            std::mem::size_of::<std::collections::HashMap<Label, Vec<ChunkId>>>(),
+        );
+        // panic!();
+    }
 }

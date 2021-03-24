@@ -10,7 +10,7 @@ use crate::{
 
 #[derive(Clone)]
 pub struct Chunk {
-    pub data: im_rc::Vector<u8>,
+    pub data: Box<im_rc::Vector<u8>>,
     pub schema: Rc<RootChunkSchema>,
 }
 
@@ -65,7 +65,7 @@ pub struct ChunkSchema {
     /// total number in subtree (nodes under traits + 1)
     pub id_stride: u32,
     pub payload_size: Option<u16>,
-    pub traits: std::collections::HashMap<Label, OffsetSchema>,
+    pub traits: std::collections::HashMap<Label, OffsetSchema, ahash::RandomState>,
 }
 
 /// Offsets are for the first iteration (of a possible schema.node_count iterations)

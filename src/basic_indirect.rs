@@ -4,7 +4,10 @@
 
 use std::{iter::Cloned, slice};
 
-use crate::{util::ImSlice, Def, Label, Node};
+use crate::{
+    util::{ImHashMap, ImSlice},
+    Def, Label, Node,
+};
 
 #[derive(Clone)]
 pub struct BasicNode<Child> {
@@ -12,7 +15,7 @@ pub struct BasicNode<Child> {
     // Payload is often not used, so indirect it to keep the size down.
     pub payload: Option<Box<im_rc::Vector<u8>>>,
     // TODO: use im::Vector here
-    pub traits: im_rc::HashMap<Label, Vec<Child>>,
+    pub traits: ImHashMap<Label, Vec<Child>>,
 }
 
 impl<'a, Child: Clone> Node<Child> for &'a BasicNode<Child> {

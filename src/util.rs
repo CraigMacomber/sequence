@@ -10,6 +10,8 @@ pub fn slice_with_length<'a>(
     focus.narrow(offset..offset + length)
 }
 
+pub type ImHashMap<K, V> = im_rc::HashMap<K, V, ahash::RandomState>;
+
 mod tests {
     #[test]
     fn narrow() {
