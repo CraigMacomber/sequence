@@ -53,6 +53,10 @@ impl<'a, TNodes: 'a> Forest<TNodes> {
         self.map.get(&id).map(|b| b.as_ref())
     }
 
+    pub fn find_nodes_mut(&mut self, id: ChunkId) -> Option<&mut Rc<TNodes>> {
+        self.map.get_mut(&id)
+    }
+
     /// Inserts a new chunk. May replace an existing one.
     pub fn insert(&mut self, id: ChunkId, value: TNodes) {
         self.map.insert(id, Rc::new(value));

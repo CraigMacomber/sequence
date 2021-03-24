@@ -2,26 +2,16 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use rand::Rng;
 use sequence::{
     basic,
-    basic_indirect::BasicNode,
-    forest,
     test_stuff::{big_tree, walk_all},
-    Def, Label, Node, NodeId,
+    Def, Label, NodeId,
 };
-use sequence::{forest::ChunkId, indirect_nav::*};
-use std::{cell::RefCell, mem, rc::Rc};
 
-fn make_and_walk_tree(size: usize) {
-    let (forest, id) = big_tree(1000);
-    let nav = forest.nav_from(id).unwrap();
-    walk_all(nav);
-}
+use std::{cell::RefCell, rc::Rc};
 
 fn big_basic_tree(size: usize) {
-    let mut forest = Forest::new();
     let rng = Rc::new(RefCell::new(rand::thread_rng()));
     let new_node_id = || -> NodeId { NodeId(rng.borrow_mut().gen()) };
-    let new_chunk_id = || -> ChunkId { ChunkId(new_node_id()) };
-    let newLabel = || -> Label { Label(rng.borrow_mut().gen()) };
+    let new_label = || -> Label { Label(rng.borrow_mut().gen()) };
     let new_def = || -> Def { Def(rng.borrow_mut().gen()) };
 
     let mut b = basic::BasicNode {
@@ -31,7 +21,7 @@ fn big_basic_tree(size: usize) {
         traits: std::collections::HashMap::new(),
     };
 
-    let label = newLabel();
+    let label = new_label();
 
     b.traits.insert(
         label,

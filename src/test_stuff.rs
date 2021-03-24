@@ -38,25 +38,23 @@ pub fn big_tree(size: usize) -> (Forest, NodeId) {
         let parent_index = rng.borrow_mut().gen_range(0..nodes.len());
         let parent_id = nodes[parent_index];
 
-        forest
-            .map
-            .entry(ChunkId(parent_id))
-            .and_modify(|p| match p.as_ref() {
-                NavChunk::Single(parent) => {
-                    let mut new_parent = parent.clone();
+        let parent = forest.find_nodes_mut(ChunkId(parent_id)).unwrap();
 
-                    new_parent
-                        .traits
-                        .entry(label)
-                        .or_insert_with(|| vec![])
-                        .push(ChunkId(id));
+        match parent.as_ref() {
+            NavChunk::Single(basic) => {
+                let mut new_parent = basic.clone();
+                new_parent
+                    .traits
+                    .entry(label)
+                    .or_insert_with(|| vec![])
+                    .push(ChunkId(id));
 
-                    *p = Rc::new(NavChunk::Single(new_parent));
-                }
-                NavChunk::Chunk(_) => {
-                    panic!()
-                }
-            });
+                *parent = Rc::new(NavChunk::Single(new_parent));
+            }
+            NavChunk::Chunk(_) => {
+                panic!();
+            }
+        };
 
         nodes.push(id);
     }
