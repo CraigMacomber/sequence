@@ -41,19 +41,23 @@ fn big_basic_tree(size: usize) {
 
 fn walk_bench(b: &mut Bencher<WallTime>, size: usize) {
     let (forest, id) = big_tree(size);
-    black_box(walk_all(forest.nav_from(id).unwrap()));
+    b.iter(|| black_box(walk_all(forest.nav_from(id).unwrap())));
+}
+
+fn insert_bench(b: &mut Bencher<WallTime>, size: usize) {
+    b.iter(|| black_box(big_tree(size)));
 }
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("big");
     // Configure Criterion.rs to detect smaller differences and increase sample size to improve
     // precision and counteract the resulting noise.
-    group.significance_level(0.1).sample_size(20);
-    group.bench_function("insert 100 nodes", |b| b.iter(|| big_tree(100)));
-    group.bench_function("insert 1k nodes", |b| b.iter(|| big_tree(1000)));
-    group.bench_function("insert 10k nodes", |b| b.iter(|| big_tree(10000)));
-    group.bench_function("insert 100k nodes", |b| b.iter(|| big_tree(100000)));
-    group.bench_function("insert 1m nodes", |b| b.iter(|| big_tree(1000000)));
+    group.significance_level(0.1).sample_size(10);
+    group.bench_function("insert 100 nodes", |b| insert_bench(b, 100));
+    group.bench_function("insert 1k nodes", |b| insert_bench(b, 1000));
+    group.bench_function("insert 10k nodes", |b| insert_bench(b, 10000));
+    group.bench_function("insert 100k nodes", |b| insert_bench(b, 100000));
+    //  group.bench_function("insert 1m nodes", |b| insert_bench(b, 1000000));
     group.bench_function("walk 100 nodes", |b| walk_bench(b, 100));
     group.bench_function("walk 1k nodes", |b| walk_bench(b, 1000));
     group.bench_function("walk 10k nodes", |b| walk_bench(b, 10000));
