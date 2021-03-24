@@ -9,10 +9,10 @@ use std::{
 use crate::{util::ImSlice, Def, Label, Node, NodeId};
 
 pub struct BasicNode {
-    id: NodeId,
-    def: Def,
-    payload: Option<im_rc::Vector<u8>>,
-    traits: HashMap<Label, Vec<BasicNode>>, // TODO: Use hash map from im_rc
+    pub id: NodeId,
+    pub def: Def,
+    pub payload: Option<im_rc::Vector<u8>>,
+    pub traits: HashMap<Label, Vec<BasicNode>>, // TODO: Use hash map from im_rc
 }
 
 impl<'a> Node<&'a BasicNode, NodeId> for &'a BasicNode {

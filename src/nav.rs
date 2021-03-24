@@ -9,6 +9,7 @@ pub trait Resolver<Node>: Copy {
     fn expand(&self, chunk: Self::ChunkId) -> Self::Iter;
 }
 
+#[derive(Clone)]
 pub struct Nav<R, TNode> {
     resolver: R,
     view: TNode,
@@ -86,10 +87,13 @@ where
 
         match self.view.next() {
             Some(id) => {
-                let iter = self.resolver.expand(id);
-                let result = self.next().unwrap(); // Chunk must not be empty
+                let mut iter = self.resolver.expand(id);
+                let result = iter.next().unwrap(); // Chunk must not be empty
                 self.pending = Some(iter);
-                return Some(result);
+                return Some(Nav {
+                    view: result,
+                    resolver: self.resolver,
+                });
             }
             None => return None,
         }

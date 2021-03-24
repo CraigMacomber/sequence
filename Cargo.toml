@@ -17,3 +17,9 @@ criterion = "0.3"
 [[bench]]
 name = "benchmarks"
 harness = false
+
+[profile.bench]
+opt-level = 3
+# lto = true
+# panic = "abort"
+debug = true

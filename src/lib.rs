@@ -5,22 +5,24 @@ use util::ImSlice;
 extern crate im_rc;
 extern crate num_integer;
 
-mod basic;
-mod basic_indirect;
-mod chunk;
-mod forest;
-mod indirect;
-mod indirect_nav;
-mod nav;
-mod util;
+pub mod basic;
+pub mod basic_indirect;
+pub mod chunk;
+pub mod forest;
+pub mod indirect;
+pub mod indirect_nav;
+pub mod nav;
+pub mod util;
+
+pub mod test_stuff;
 
 #[derive(Clone, PartialEq, Eq, Ord, Hash, PartialOrd, Copy)]
-pub struct Def(u128);
+pub struct Def(pub u128);
 #[derive(Clone, PartialEq, Eq, Ord, Hash, PartialOrd, Copy)]
-pub struct Label(u128);
+pub struct Label(pub u128);
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
-pub struct NodeId(u128);
+pub struct NodeId(pub u128);
 
 impl Add<usize> for NodeId {
     type Output = NodeId;

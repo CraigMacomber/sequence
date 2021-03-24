@@ -13,7 +13,7 @@ use crate::{
 
 #[derive(Clone)]
 pub struct Chunk<Id> {
-    pub first_id: Id,
+    first_id: Id,
     schema: ChunkSchema,
     data: im_rc::Vector<u8>,
     id_offset_to_byte_offset_and_schema: im_rc::HashMap<u32, (u32, ChunkSchema)>, // TODO: include parent info in this

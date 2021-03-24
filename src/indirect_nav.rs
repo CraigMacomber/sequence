@@ -34,7 +34,7 @@ impl<'a> forest::Nodes for &'a NavChunk {
     }
 }
 
-type Forest = forest::Forest<NavChunk>;
+pub type Forest = forest::Forest<NavChunk>;
 pub enum Expander<'a> {
     Chunk(ChunkIterator<'a, NodeId>),
     Single(NodeView<'a>),
@@ -85,7 +85,7 @@ impl Forest {
 #[cfg(test)]
 mod tests {
     use rand::Rng;
-    use std::{cell::RefCell, rc::Rc};
+    use std::{cell::RefCell, mem, rc::Rc};
 
     use super::*;
     use crate::{Def, Label};
@@ -93,7 +93,7 @@ mod tests {
     #[test]
     fn it_works() {
         let mut forest = Forest::new();
-        forest.map.insert(
+        forest.insert(
             ChunkId(NodeId(5)),
             NavChunk::Single(BasicNode {
                 def: Def(1),
@@ -114,6 +114,13 @@ mod tests {
         let n = forest.find_nodes(ChunkId(NodeId(5))).unwrap();
         let n = forest::Nodes::get(&n, NodeId(5)).unwrap();
         assert!(n.get_def().0 == 1);
+
+        // assert_eq!(0, mem::size_of::<NavChunk>());
+
+        // assert_eq!(
+        //     mem::size_of::<Chunk<NodeId>>(),
+        //     mem::size_of::<BasicNode<NodeId, ChunkId>>()
+        // );
     }
 
     #[test]
@@ -125,9 +132,10 @@ mod tests {
         let newLabel = || -> Label { Label(rng.borrow_mut().gen()) };
         let newDef = || -> Def { Def(rng.borrow_mut().gen()) };
 
-        for i in 0..1000000 {
-            let id = newNodeId();
-            forest.map.insert(
+        let mut id = newNodeId();
+        for i in 0..1000 {
+            id = newNodeId();
+            forest.insert(
                 ChunkId(id),
                 NavChunk::Single(BasicNode {
                     def: newDef(),
@@ -135,10 +143,10 @@ mod tests {
                     payload: None,
                     traits: im_rc::HashMap::new(),
                 }),
-            );
+            )
         }
 
-        let an_id = forest.map.get_min().unwrap().0 .0;
+        let an_id = id;
 
         let n = forest.find_node(an_id).unwrap();
 

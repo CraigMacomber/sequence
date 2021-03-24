@@ -11,6 +11,7 @@ pub struct BasicNode<Id, Child> {
     pub id: Id,
     pub def: Def,
     pub payload: Option<im_rc::Vector<u8>>,
+    // TODO: use im::Vector here
     pub traits: im_rc::HashMap<Label, Vec<Child>>,
 }
 
