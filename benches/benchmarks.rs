@@ -1,4 +1,6 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{
+    black_box, criterion_group, criterion_main, measurement::WallTime, Bencher, Criterion,
+};
 use rand::Rng;
 use sequence::{
     basic,
@@ -35,42 +37,28 @@ fn big_basic_tree(size: usize) {
             })
             .collect(),
     );
+}
 
-    // let an_id = forest.map.get_min().unwrap().0 .0;
-
-    // let n = forest.find_node(an_id).unwrap();
-
-    // let nav = forest.nav_from(an_id).unwrap();
-
-    // let children: Vec<_> = nav.get_trait(Label(9)).collect();
-    // assert!(children.len() == 0);
-
-    // let n = forest.find_nodes(ChunkId(an_id)).unwrap();
-    // let n = forest::Nodes::get(&n, an_id).unwrap();
+fn walk_bench(b: &mut Bencher<WallTime>, size: usize) {
+    let (forest, id) = big_tree(size);
+    black_box(walk_all(forest.nav_from(id).unwrap()));
 }
 
 pub fn criterion_benchmark(c: &mut Criterion) {
-    let (forest100k, id100k) = big_tree(100000);
-    let (forest1m, id1m) = big_tree(1000000);
-
     let mut group = c.benchmark_group("big");
     // Configure Criterion.rs to detect smaller differences and increase sample size to improve
     // precision and counteract the resulting noise.
-    group.significance_level(0.2).sample_size(10);
+    group.significance_level(0.1).sample_size(20);
     group.bench_function("insert 100 nodes", |b| b.iter(|| big_tree(100)));
     group.bench_function("insert 1k nodes", |b| b.iter(|| big_tree(1000)));
     group.bench_function("insert 10k nodes", |b| b.iter(|| big_tree(10000)));
-    // group.bench_function("insert 100k nodes", |b| b.iter(|| big_tree(100000)));
-    // group.bench_function("insert 1m nodes", |b| b.iter(|| big_tree(1000000)));
-    group.bench_function("walk 100k nodes", |b| {
-        b.iter(|| walk_all(forest100k.nav_from(id100k).unwrap()))
-    });
-    group.bench_function("walk 1m nodes", |b| {
-        b.iter(|| walk_all(forest1m.nav_from(id1m).unwrap()))
-    });
-    // group.bench_function("insert 1m nodes basic", |b| {
-    //     b.iter(|| big_basic_tree(1000000))
-    // });
+    group.bench_function("insert 100k nodes", |b| b.iter(|| big_tree(100000)));
+    group.bench_function("insert 1m nodes", |b| b.iter(|| big_tree(1000000)));
+    group.bench_function("walk 100 nodes", |b| walk_bench(b, 100));
+    group.bench_function("walk 1k nodes", |b| walk_bench(b, 1000));
+    group.bench_function("walk 10k nodes", |b| walk_bench(b, 10000));
+    group.bench_function("walk 100k nodes", |b| walk_bench(b, 100000));
+    group.bench_function("walk 1m nodes", |b| walk_bench(b, 1000000));
     group.finish();
 }
 
