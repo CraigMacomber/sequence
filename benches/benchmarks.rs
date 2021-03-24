@@ -52,17 +52,20 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("big");
     // Configure Criterion.rs to detect smaller differences and increase sample size to improve
     // precision and counteract the resulting noise.
-    group.significance_level(0.1).sample_size(10);
-    group.bench_function("insert 100 nodes", |b| insert_bench(b, 100));
-    group.bench_function("insert 1k nodes", |b| insert_bench(b, 1000));
-    group.bench_function("insert 10k nodes", |b| insert_bench(b, 10000));
-    group.bench_function("insert 100k nodes", |b| insert_bench(b, 100000));
-    //  group.bench_function("insert 1m nodes", |b| insert_bench(b, 1000000));
+    group.significance_level(0.1).sample_size(10); //.measurement_time();
     group.bench_function("walk 100 nodes", |b| walk_bench(b, 100));
     group.bench_function("walk 1k nodes", |b| walk_bench(b, 1000));
     group.bench_function("walk 10k nodes", |b| walk_bench(b, 10000));
     group.bench_function("walk 100k nodes", |b| walk_bench(b, 100000));
     group.bench_function("walk 1m nodes", |b| walk_bench(b, 1000000));
+    //group.bench_function("walk 10m nodes", |b| walk_bench(b, 10000000));
+    group.bench_function("insert 100 nodes", |b| insert_bench(b, 100));
+    group.bench_function("insert 1k nodes", |b| insert_bench(b, 1000));
+    group.bench_function("insert 10k nodes", |b| insert_bench(b, 10000));
+    group.bench_function("insert 100k nodes", |b| insert_bench(b, 100000));
+    group.bench_function("insert 1m nodes", |b| insert_bench(b, 1000000));
+    //group.bench_function("insert 10m nodes", |b| insert_bench(b, 10000000));
+
     group.finish();
 }
 
@@ -72,3 +75,5 @@ criterion_main!(benches);
 // sudo perf record --call-graph=dwarf ./benchmarks-dcce7430a8992982 --bench --profile-time 10
 // sudo perf report --hierarchy -M intel
 // https://rust-lang.github.io/packed_simd/perf-guide/prof/linux.html
+// cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+// echo "performance" | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor

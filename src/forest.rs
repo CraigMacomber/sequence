@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use crate::NodeId;
 
 // Chunk or BasicNode
@@ -33,7 +31,7 @@ pub trait Nodes: Clone {
 #[derive(Clone)]
 pub struct Forest<TNodes> {
     // TODO: Nodes store their id (otherwise get can't be implemented), which is redundant with one in map.
-    pub map: im_rc::OrdMap<ChunkId, Rc<TNodes>>,
+    pub map: im_rc::OrdMap<ChunkId, TNodes>,
 }
 
 impl<'a, TNodes: 'a> Forest<TNodes>
@@ -42,24 +40,27 @@ where
 {
     pub fn find_node(&'a self, id: NodeId) -> Option<<&'a TNodes as Nodes>::View> {
         match self.map.get_prev(&ChunkId(id)) {
-            Some((chunk, v)) => v.as_ref().get(chunk.0, id),
+            Some((chunk, v)) => v.get(chunk.0, id),
             None => None,
         }
     }
 }
 
-impl<'a, TNodes: 'a> Forest<TNodes> {
+impl<'a, TNodes: 'a> Forest<TNodes>
+where
+    TNodes: Clone,
+{
     pub fn find_nodes(&self, id: ChunkId) -> Option<&TNodes> {
-        self.map.get(&id).map(|b| b.as_ref())
+        self.map.get(&id)
     }
 
-    pub fn find_nodes_mut(&mut self, id: ChunkId) -> Option<&mut Rc<TNodes>> {
+    pub fn find_nodes_mut(&mut self, id: ChunkId) -> Option<&mut TNodes> {
         self.map.get_mut(&id)
     }
 
     /// Inserts a new chunk. May replace an existing one.
     pub fn insert(&mut self, id: ChunkId, value: TNodes) {
-        self.map.insert(id, Rc::new(value));
+        self.map.insert(id, value);
     }
 
     pub fn new() -> Self {

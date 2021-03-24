@@ -40,16 +40,13 @@ pub fn big_tree(size: usize) -> (Forest, NodeId) {
 
         let parent = forest.find_nodes_mut(ChunkId(parent_id)).unwrap();
 
-        match parent.as_ref() {
+        match parent {
             NavChunk::Single(basic) => {
-                let mut new_parent = basic.clone();
-                new_parent
+                basic
                     .traits
                     .entry(label)
                     .or_insert_with(|| vec![])
                     .push(ChunkId(id));
-
-                *parent = Rc::new(NavChunk::Single(new_parent));
             }
             NavChunk::Chunk(_) => {
                 panic!();
@@ -80,7 +77,15 @@ mod tests {
     #[test]
     fn it_works() {
         let size = 1000;
-        let (forest, id) = big_tree(1000);
+        let (forest, id) = big_tree(size);
+        let nav = forest.nav_from(id).unwrap();
+        assert_eq!(walk_all(nav), size);
+    }
+
+    #[test]
+    fn big() {
+        let size = 10000000;
+        let (forest, id) = big_tree(size);
         let nav = forest.nav_from(id).unwrap();
         assert_eq!(walk_all(nav), size);
     }
