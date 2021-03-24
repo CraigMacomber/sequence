@@ -1,20 +1,19 @@
-use crate::{basic, basic_indirect::BasicNode, forest, Def, Label, Node, NodeId};
+use crate::{basic_indirect::BasicNode, Def, Label, Node, NodeId};
 use crate::{forest::ChunkId, indirect_nav::*};
 use rand::Rng;
-use std::{cell::RefCell, mem, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 pub fn big_tree(size: usize) -> (Forest, NodeId) {
     let mut forest = Forest::new();
     let rng = Rc::new(RefCell::new(rand::thread_rng()));
     let new_node_id = || -> NodeId { NodeId(rng.borrow_mut().gen()) };
-    let new_chunk_id = || -> ChunkId { ChunkId(new_node_id()) };
-    let newLabel = || -> Label { Label(rng.borrow_mut().gen()) };
+    let new_label = || -> Label { Label(rng.borrow_mut().gen()) };
     let new_def = || -> Def { Def(rng.borrow_mut().gen()) };
 
     let def = new_def();
     let root_id = new_node_id();
     let mut nodes = vec![root_id];
-    let label = newLabel();
+    let label = new_label();
 
     forest.insert(
         ChunkId(root_id),
@@ -26,7 +25,7 @@ pub fn big_tree(size: usize) -> (Forest, NodeId) {
         }),
     );
 
-    for i in 1..size {
+    for _ in 1..size {
         let id = new_node_id(); // NodeId(i as u128);
         forest.insert(
             ChunkId(id),
@@ -64,17 +63,6 @@ pub fn big_tree(size: usize) -> (Forest, NodeId) {
         nodes.push(id);
     }
 
-    // let an_id = forest.map.get_min().unwrap().0 .0;
-
-    // let n = forest.find_node(an_id).unwrap();
-
-    // let nav = forest.nav_from(an_id).unwrap();
-
-    // let children: Vec<_> = nav.get_trait(Label(9)).collect();
-    // assert!(children.len() == 0);
-
-    // let n = forest.find_nodes(ChunkId(an_id)).unwrap();
-    // let n = forest::Nodes::get(&n, an_id).unwrap();
     (forest, root_id)
 }
 

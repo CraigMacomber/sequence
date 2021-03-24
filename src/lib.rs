@@ -24,19 +24,22 @@ pub struct Label(pub u128);
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
 pub struct NodeId(pub u128);
 
-impl Add<usize> for NodeId {
+#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
+pub struct IdOffset(pub u32);
+
+impl Add<IdOffset> for NodeId {
     type Output = NodeId;
 
-    fn add(self, rhs: usize) -> Self::Output {
-        NodeId(self.0 + rhs as u128)
+    fn add(self, rhs: IdOffset) -> Self::Output {
+        NodeId(self.0 + rhs.0 as u128)
     }
 }
 
 impl Sub<NodeId> for NodeId {
-    type Output = usize;
+    type Output = IdOffset;
 
     fn sub(self, rhs: NodeId) -> Self::Output {
-        (self.0 - rhs.0) as usize
+        IdOffset((self.0 - rhs.0) as u32)
     }
 }
 

@@ -117,45 +117,9 @@ mod tests {
 
         // assert_eq!(0, mem::size_of::<NavChunk>());
 
-        // assert_eq!(
-        //     mem::size_of::<Chunk<NodeId>>(),
-        //     mem::size_of::<BasicNode<NodeId, ChunkId>>()
-        // );
-    }
-
-    #[test]
-    fn big_tree() {
-        let mut forest = Forest::new();
-        let rng = Rc::new(RefCell::new(rand::thread_rng()));
-        let newNodeId = || -> NodeId { NodeId(rng.borrow_mut().gen()) };
-        let newChunkId = || -> ChunkId { ChunkId(newNodeId()) };
-        let newLabel = || -> Label { Label(rng.borrow_mut().gen()) };
-        let newDef = || -> Def { Def(rng.borrow_mut().gen()) };
-
-        let mut id = newNodeId();
-        for i in 0..1000 {
-            id = newNodeId();
-            forest.insert(
-                ChunkId(id),
-                NavChunk::Single(BasicNode {
-                    def: newDef(),
-                    id,
-                    payload: None,
-                    traits: im_rc::HashMap::new(),
-                }),
-            )
-        }
-
-        let an_id = id;
-
-        let n = forest.find_node(an_id).unwrap();
-
-        let nav = forest.nav_from(an_id).unwrap();
-
-        let children: Vec<_> = nav.get_trait(Label(9)).collect();
-        assert!(children.len() == 0);
-
-        let n = forest.find_nodes(ChunkId(an_id)).unwrap();
-        let n = forest::Nodes::get(&n, an_id).unwrap();
+        assert_eq!(
+            mem::size_of::<Chunk<NodeId>>(),
+            mem::size_of::<BasicNode<NodeId, ChunkId>>()
+        );
     }
 }

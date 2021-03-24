@@ -60,8 +60,8 @@ fn big_basic_tree(size: usize) {
 }
 
 pub fn criterion_benchmark(c: &mut Criterion) {
-    let (forest, id) = big_tree(1000);
-    let nav = forest.nav_from(id).unwrap();
+    let (forest100k, id100k) = big_tree(100000);
+    let (forest1m, id1m) = big_tree(1000000);
 
     let mut group = c.benchmark_group("big");
     // Configure Criterion.rs to detect smaller differences and increase sample size to improve
@@ -70,9 +70,14 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     group.bench_function("insert 100 nodes", |b| b.iter(|| big_tree(100)));
     group.bench_function("insert 1k nodes", |b| b.iter(|| big_tree(1000)));
     group.bench_function("insert 10k nodes", |b| b.iter(|| big_tree(10000)));
-    group.bench_function("insert 100k nodes", |b| b.iter(|| big_tree(100000)));
-    group.bench_function("insert 1m nodes", |b| b.iter(|| big_tree(1000000)));
-    group.bench_function("walk 1m nodes", |b| b.iter(|| walk_all(nav.clone())));
+    // group.bench_function("insert 100k nodes", |b| b.iter(|| big_tree(100000)));
+    // group.bench_function("insert 1m nodes", |b| b.iter(|| big_tree(1000000)));
+    group.bench_function("walk 100k nodes", |b| {
+        b.iter(|| walk_all(forest100k.nav_from(id100k).unwrap()))
+    });
+    group.bench_function("walk 1m nodes", |b| {
+        b.iter(|| walk_all(forest1m.nav_from(id1m).unwrap()))
+    });
     // group.bench_function("insert 1m nodes basic", |b| {
     //     b.iter(|| big_basic_tree(1000000))
     // });

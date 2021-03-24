@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{ops::Range, rc::Rc};
 
 use crate::NodeId;
 
@@ -8,9 +8,12 @@ pub struct ChunkId(pub NodeId);
 
 pub trait Nodes: Clone {
     type View;
-    // fn first_id(&self) -> NodeId;
 
-    // gets an node with an id owned by this chunk
+    /// A chunk is allowed to be sparse within its range,
+    /// however no ids within the range may be used elsewhere (it is considered to own them)
+    // fn id_range(&self) -> Range<NodeId>;
+
+    /// gets an node with an id owned by this chunk
     fn get(&self, id: NodeId) -> Option<Self::View>;
 }
 
@@ -40,6 +43,7 @@ impl<'a, TNodes: 'a> Forest<TNodes> {
         self.map.get(&id).map(|b| b.as_ref())
     }
 
+    /// Inserts a new chunk. May replace an existing one.
     pub fn insert(&mut self, id: ChunkId, value: TNodes) {
         self.map.insert(id, Rc::new(value));
     }

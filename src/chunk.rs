@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
     util::{slice_with_length, ImSlice},
-    Def, Label, Node,
+    Def, IdOffset, Label, Node,
 };
 
 #[derive(Clone)]
@@ -22,16 +22,17 @@ pub struct Chunk<Id> {
 #[derive(Clone)]
 struct ChunkSchema {
     def: Def,
+    /// total number in subtree (nodes under traits + 1)
     node_count: u32,
     bytes_per_node: u32,
-    id_stride: u32, // total number in subtree (nodes under traits + 1)
+    id_stride: u32,
     payload_size: Option<u16>,
     traits: im_rc::HashMap<Label, OffsetSchema>,
 }
 
 #[derive(Clone)]
 pub struct OffsetSchema {
-    id_offset: u32,
+    id_offset: IdOffset,
     byte_offset: u32,
     schema: ChunkSchema,
 }
@@ -45,10 +46,13 @@ pub struct ChunkView<'a, Id> {
     data: ImSlice<'a>,
 }
 
-pub trait IdConstraint<Id>: Copy + Ord + Sub<Id, Output = usize> + Add<usize, Output = Id> {}
+pub trait IdConstraint<Id>:
+    Copy + Ord + Sub<Id, Output = IdOffset> + Add<IdOffset, Output = Id>
+{
+}
 
-impl<Id: Copy + Clone + Ord + Sub<Id, Output = usize> + Add<usize, Output = Id>> IdConstraint<Id>
-    for Id
+impl<Id: Copy + Clone + Ord + Sub<Id, Output = IdOffset> + Add<IdOffset, Output = Id>>
+    IdConstraint<Id> for Id
 {
 }
 
@@ -59,8 +63,8 @@ where
     pub fn lookup(&'a self, id: Id) -> Option<ChunkOffset<'a, Id>> {
         if id < self.first_id {
             None
-        } else if id < self.first_id + (self.schema.id_stride as usize * self.get_count()) {
-            let id_offset = (id - self.first_id) as u32;
+        } else if id < self.first_id + IdOffset(self.schema.id_stride * self.get_count() as u32) {
+            let id_offset = (id - self.first_id).0;
             let (div, rem) = num_integer::div_rem(id_offset, self.schema.id_stride);
             let (inner_byte_offset, schema) =
                 self.id_offset_to_byte_offset_and_schema.get(&rem).unwrap();
@@ -103,7 +107,7 @@ impl<Id: Copy> Chunk<Id> {
 
 impl<'a, Id: IdConstraint<Id>> ChunkOffset<'a, Id> {
     fn first_id(&self) -> Id {
-        self.view.first_id + (self.offset as usize * self.view.schema.id_stride as usize)
+        self.view.first_id + IdOffset(self.offset as u32 * self.view.schema.id_stride as u32)
     }
 
     fn data(&self) -> ImSlice<'a> {
@@ -117,12 +121,12 @@ impl<'a, Id: IdConstraint<Id>> ChunkOffset<'a, Id> {
 // Views first item as chunk in as node
 impl<'a, Id: IdConstraint<Id>> Node<ChunkOffset<'a, Id>, Id> for ChunkOffset<'a, Id>
 where
-    Id: std::ops::Add<usize>,
+    Id: std::ops::Add<IdOffset>,
 {
     type TTrait = ChunkIterator<'a, Id>;
 
     fn get_id(&self) -> Id {
-        self.view.first_id + self.offset as usize
+        self.view.first_id + IdOffset(self.offset)
     }
 
     fn get_def(&self) -> Def {
@@ -158,7 +162,7 @@ where
                         x.byte_offset as usize,
                         x.schema.bytes_per_node as usize,
                     ),
-                    first_id: self.first_id() + x.id_offset as usize,
+                    first_id: self.first_id() + x.id_offset,
                 },
             }),
             None => ChunkIterator::Empty,
