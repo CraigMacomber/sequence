@@ -6,7 +6,7 @@ use crate::{
     basic_indirect::BasicNode,
     chunk::{Chunk, ChunkIterator, ChunkOffset},
     forest::{self, ChunkId},
-    indirect::{Child, NodeView},
+    indirect::{BasicView, Child, NodeView},
     nav::{Nav, Resolver},
     Node, NodeId,
 };
@@ -14,22 +14,22 @@ use crate::{
 /// Tree data, stored in the forest, keyed by the first id in the chunk.
 #[derive(Clone)]
 pub enum NavChunk {
-    Single(BasicNode<NodeId, ChunkId>),
-    Chunk(Chunk<NodeId>),
+    Single(BasicNode<ChunkId>),
+    Chunk(Chunk),
 }
 
 impl<'a> forest::Nodes for &'a NavChunk {
     type View = NodeView<'a>;
-    fn get(&self, id: NodeId) -> Option<NodeView<'a>> {
+    fn get(&self, first_id: NodeId, id: NodeId) -> Option<NodeView<'a>> {
         match self {
-            NavChunk::Single(n) => {
-                if n.get_id() == id {
-                    Some(NodeView::Single(n))
+            NavChunk::Single(node) => {
+                if first_id == id {
+                    Some(NodeView::Single(BasicView { node, id }))
                 } else {
                     None
                 }
             }
-            NavChunk::Chunk(c) => c.lookup(id).map(|x| NodeView::Chunk(x)),
+            NavChunk::Chunk(c) => c.lookup(first_id, id).map(|x| NodeView::Chunk(x)),
         }
     }
 }
@@ -65,9 +65,12 @@ impl<'a> Resolver<NodeView<'a>> for &'a Forest {
     fn expand(&self, chunk: Self::ChunkId) -> Self::Iter {
         match chunk {
             Child::Id(id) => match self.find_nodes(id).unwrap() {
-                NavChunk::Single(basic) => Expander::Single(NodeView::Single(basic)),
+                NavChunk::Single(basic) => Expander::Single(NodeView::Single(BasicView {
+                    node: basic,
+                    id: id.0,
+                })),
                 NavChunk::Chunk(chunk) => Expander::Chunk(ChunkIterator::View(ChunkOffset {
-                    view: chunk.view(),
+                    view: chunk.view(id.0),
                     offset: 0,
                 })),
             },
@@ -97,7 +100,6 @@ mod tests {
             ChunkId(NodeId(5)),
             NavChunk::Single(BasicNode {
                 def: Def(1),
-                id: NodeId(5),
                 payload: None,
                 traits: im_rc::HashMap::new(),
             }),
@@ -112,14 +114,14 @@ mod tests {
         assert!(children.len() == 0);
 
         let n = forest.find_nodes(ChunkId(NodeId(5))).unwrap();
-        let n = forest::Nodes::get(&n, NodeId(5)).unwrap();
+        let n = forest::Nodes::get(&n, NodeId(5), NodeId(5)).unwrap();
         assert!(n.get_def().0 == 1);
 
         // assert_eq!(0, mem::size_of::<NavChunk>());
 
         assert_eq!(
-            mem::size_of::<Chunk<NodeId>>(),
-            mem::size_of::<BasicNode<NodeId, ChunkId>>()
+            mem::size_of::<Chunk>(),
+            mem::size_of::<BasicNode<ChunkId>>()
         );
     }
 }

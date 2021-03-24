@@ -43,16 +43,19 @@ impl Sub<NodeId> for NodeId {
     }
 }
 
-pub trait Node<TChild, Id> {
+pub trait Node<TChild> {
     type TTrait: Iterator<Item = TChild>;
     type TTraitIterator: IntoIterator<Item = Label>;
 
-    fn get_id(&self) -> Id;
     fn get_def(&self) -> Def;
     fn get_payload(&self) -> Option<ImSlice>;
 
     fn get_traits(&self) -> Self::TTraitIterator;
     fn get_trait(&self, label: Label) -> Self::TTrait;
+}
+
+pub trait HasId {
+    fn get_id(&self) -> NodeId;
 }
 
 #[cfg(test)]

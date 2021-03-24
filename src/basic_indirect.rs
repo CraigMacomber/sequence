@@ -7,21 +7,16 @@ use std::{iter::Cloned, slice};
 use crate::{util::ImSlice, Def, Label, Node};
 
 #[derive(Clone)]
-pub struct BasicNode<Id, Child> {
-    pub id: Id,
+pub struct BasicNode<Child> {
     pub def: Def,
     pub payload: Option<im_rc::Vector<u8>>,
     // TODO: use im::Vector here
     pub traits: im_rc::HashMap<Label, Vec<Child>>,
 }
 
-impl<'a, Id: Copy, Child: Clone> Node<Child, Id> for &'a BasicNode<Id, Child> {
+impl<'a, Child: Clone> Node<Child> for &'a BasicNode<Child> {
     type TTrait = Cloned<slice::Iter<'a, Child>>;
     type TTraitIterator = Cloned<im_rc::hashmap::Keys<'a, Label, Vec<Child>>>;
-
-    fn get_id(&self) -> Id {
-        self.id
-    }
 
     fn get_def(&self) -> Def {
         self.def
@@ -42,11 +37,11 @@ impl<'a, Id: Copy, Child: Clone> Node<Child, Id> for &'a BasicNode<Id, Child> {
     fn get_trait(&self, label: Label) -> Self::TTrait {
         self.traits
             .get(&label)
-            .map_or(BasicNode::<Id, Child>::EMPTY.iter(), |x| x.iter())
+            .map_or(BasicNode::<Child>::EMPTY.iter(), |x| x.iter())
             .cloned()
     }
 }
 
-impl<'a, Id, Child> BasicNode<Id, Child> {
+impl<'a, Child> BasicNode<Child> {
     const EMPTY: [Child; 0] = [];
 }

@@ -19,7 +19,6 @@ pub fn big_tree(size: usize) -> (Forest, NodeId) {
         ChunkId(root_id),
         NavChunk::Single(BasicNode {
             def,
-            id: root_id,
             payload: None,
             traits: im_rc::HashMap::new(),
         }),
@@ -31,7 +30,6 @@ pub fn big_tree(size: usize) -> (Forest, NodeId) {
             ChunkId(id),
             NavChunk::Single(BasicNode {
                 def,
-                id,
                 payload: None,
                 traits: im_rc::HashMap::new(),
             }),
@@ -66,7 +64,7 @@ pub fn big_tree(size: usize) -> (Forest, NodeId) {
     (forest, root_id)
 }
 
-pub fn walk_all<T: Node<T, NodeId>>(n: T) -> usize {
+pub fn walk_all<T: Node<T>>(n: T) -> usize {
     let mut count = 1;
     for t in n.get_traits() {
         for c in n.get_trait(t) {

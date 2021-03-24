@@ -1,6 +1,6 @@
 //! Generic Nav which handles child id indirection via a Resolver which returns an iterable of Nodes for an Id.
 
-use crate::{Def, Label, Node, NodeId};
+use crate::{Def, HasId, Label, Node, NodeId};
 
 /// Chunk resolver
 pub trait Resolver<Node>: Copy {
@@ -20,28 +20,38 @@ impl<R, TNode> Nav<R, TNode> {
         Nav { resolver, view }
     }
 }
+
+impl<R, TNode> HasId for Nav<R, TNode>
+where
+    TNode: HasId,
+{
+    fn get_id(&self) -> NodeId {
+        self.view.get_id()
+    }
+}
+
 pub struct TraitNav<R, TNode>
 where
     R: Resolver<TNode>,
-    TNode: Node<<R as Resolver<TNode>>::ChunkId, NodeId>,
+    TNode: Node<<R as Resolver<TNode>>::ChunkId>,
 {
     resolver: R,
-    view: <TNode as Node<<R as Resolver<TNode>>::ChunkId, NodeId>>::TTrait,
+    view: <TNode as Node<<R as Resolver<TNode>>::ChunkId>>::TTrait,
     pending: Option<<R as Resolver<TNode>>::Iter>,
 }
 
-impl<R, TNode> Node<Nav<R, TNode>, NodeId> for Nav<R, TNode>
+impl<R, TNode> Node<Nav<R, TNode>> for Nav<R, TNode>
 where
     R: Resolver<TNode>,
-    TNode: Node<<R as Resolver<TNode>>::ChunkId, NodeId>,
+    TNode: Node<<R as Resolver<TNode>>::ChunkId>,
 {
     type TTrait = TraitNav<R, TNode>;
 
     type TTraitIterator = TNode::TTraitIterator;
 
-    fn get_id(&self) -> NodeId {
-        self.view.get_id()
-    }
+    // fn get_id(&self) -> NodeId {
+    //     self.view.get_id()
+    // }
 
     fn get_def(&self) -> Def {
         self.view.get_def()
@@ -67,7 +77,7 @@ where
 impl<R, TNode> Iterator for TraitNav<R, TNode>
 where
     R: Resolver<TNode>,
-    TNode: Node<<R as Resolver<TNode>>::ChunkId, NodeId>,
+    TNode: Node<<R as Resolver<TNode>>::ChunkId>,
 {
     type Item = Nav<R, TNode>;
 

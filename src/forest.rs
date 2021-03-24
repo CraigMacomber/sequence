@@ -14,7 +14,7 @@ pub trait Nodes: Clone {
     // fn id_range(&self) -> Range<NodeId>;
 
     /// gets an node with an id owned by this chunk
-    fn get(&self, id: NodeId) -> Option<Self::View>;
+    fn get(&self, first_id: NodeId, id: NodeId) -> Option<Self::View>;
 }
 
 // TODO: mutation APIs
@@ -32,7 +32,7 @@ where
 {
     pub fn find_node(&'a self, id: NodeId) -> Option<<&'a TNodes as Nodes>::View> {
         match self.map.get_prev(&ChunkId(id)) {
-            Some((_, v)) => v.as_ref().get(id),
+            Some((chunk, v)) => v.as_ref().get(chunk.0, id),
             None => None,
         }
     }

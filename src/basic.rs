@@ -15,13 +15,13 @@ pub struct BasicNode {
     pub traits: HashMap<Label, Vec<BasicNode>>, // TODO: Use hash map from im_rc
 }
 
-impl<'a> Node<&'a BasicNode, NodeId> for &'a BasicNode {
+impl<'a> Node<&'a BasicNode> for &'a BasicNode {
     type TTrait = slice::Iter<'a, BasicNode>;
     type TTraitIterator = Cloned<Keys<'a, Label, Vec<BasicNode>>>;
 
-    fn get_id(&self) -> NodeId {
-        self.id
-    }
+    // fn get_id(&self) -> NodeId {
+    //     self.id
+    // }
 
     fn get_def(&self) -> Def {
         self.def
