@@ -92,6 +92,33 @@ If the data is mostly big chunks, traversal is 0.2 seconds, and inserting the ch
 
 All nodes can be looked up by their Id, but I'm not tracking parents yet (that won't change the algorithmic complexity, but will add significant a constant factor)
 
+Size of ids mainly impacts memory use, and perf of inserting non-chunked data.
+
+Traversing and inserting chunks is faster than basic nodes, even if the chunks are small (ex: 5 node color trees is > 5x faster to insert chunked and ~4x faster to walk).
+
 ## Ideas
 
 Maybe use https://docs.rs/sanakirja/1.2.0/sanakirja/index.html (or specifically sanakirja-core if on the web) as its a B-Tree that supports paging and copy on write. Might work much better for server case (on disk cache, multi threaded etc).
+
+When compressing ids, use context dependant short ids.
+
+Maybe have internal state of an id compressor as part of the consensus document: only update it for sequenced ops.
+Then ops can use ids that exist in there, full UUIDs, or an index relative to a known UUID.
+Perhaps have ops that reserve a range so ops after it can specify a UUID+offset and get good auto clustering.
+
+Alternatively, a smarter auto clustering solution than RangeTable.
+
+Could use 32 bit short ids until they run out then switch to 64 (either support both mixed or convert all data).
+
+Using data (instead for schema constants) for def_s or labels impacts compression scheme.
+
+Could keep common schema in a buffer, remember state of this buffer for all revisions between minimum sequence and max sequenced revision (COW) (save this in snapshots), and use it to compress common types and ids on the wire (in ops).
+
+Blobs within a snapshot can point to a blob which contains their schema data (or contain it directly.)
+Just split-out and dedup all schema and Ids, then compress (ex: deflate) the whole thing. (Skip general compressed if storage layer already does it? Maybe keep compressed in memory for synchronous access)
+
+Id compression and chunking are different subsets of extract then compress subset (mainly schema) pattern.
+
+Chunks can be modified (ex: individual payloads changed) somewhat efficiently. Doing invalidation could be done with a diff on the data, and a byte -> id lookup.
+Efficiently tracking observation of chunks is also an interesting problem. Maybe use an observations schema to prune diff? (hand over both snapshots when generating inval: use observation data to restrict compare to observed subset).
+im_vec does not really what we want for chunk backing data (some sort of im_array would make more sense)

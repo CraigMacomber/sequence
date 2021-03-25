@@ -5,14 +5,40 @@ use crate::{
     indirect_nav::*,
 };
 use rand::Rng;
+use std::iter::FromIterator;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 pub const PER_CHUNK_ITEM: usize = 5;
 
+pub fn chunked_tree(size: usize, per_chunk: usize) -> (Forest, NodeId) {
+    let (chunks, chunk_size) = if per_chunk == 0 {
+        (0, 0)
+    } else {
+        let chunk_size = per_chunk / PER_CHUNK_ITEM;
+        let chunks = size / (chunk_size * PER_CHUNK_ITEM);
+        (chunks, chunk_size)
+    };
+
+    // Make sure we have at least enough nodes to make reasonable palces to parent chunks under, and enough to really have `size` nodes.
+    let basic_nodes = usize::max(
+        1 + chunks / 10,
+        size - (chunks * PER_CHUNK_ITEM * chunk_size),
+    );
+    big_tree(basic_nodes, chunks, chunk_size)
+}
+
 pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeId) {
     let mut forest = Forest::new();
-    let rng = Rc::new(RefCell::new(rand::thread_rng()));
-    let new_node_id = || -> NodeId { NodeId(rng.borrow_mut().gen()) };
+    let id = RefCell::new(0);
+    let rng = RefCell::new(rand::thread_rng());
+
+    // let new_node_id = || {
+    //     let mut id = id.borrow_mut();
+    //     *id = *id + 1;
+    //     NodeId(*id)
+    // };
+    let new_node_id = || NodeId(rng.borrow_mut().gen());
+
     let new_label = || -> Label { Label(rng.borrow_mut().gen()) };
     let new_def = || -> Def { Def(rng.borrow_mut().gen()) };
 
@@ -31,12 +57,12 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
     );
 
     for _ in 1..size {
-        let id = new_node_id(); // NodeId(i as u128);
+        let id = new_node_id();
         forest.insert(
             ChunkId(id),
             NavChunk::Single(BasicNode {
                 def,
-                payload: None,
+                payload: None, //Some(im_rc::Vector::from_iter([1u8].iter().cloned()).into()),
                 traits: im_rc::HashMap::default(),
             }),
         );

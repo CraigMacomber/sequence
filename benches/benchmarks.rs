@@ -4,8 +4,7 @@ use criterion::{
 use rand::Rng;
 use sequence::{
     basic,
-    indirect_nav::Forest,
-    test_stuff::{big_tree, walk_all, PER_CHUNK_ITEM},
+    test_stuff::{chunked_tree, walk_all},
     Def, Label, NodeId,
 };
 
@@ -40,23 +39,6 @@ fn big_basic_tree(size: usize) {
     );
 }
 
-fn chunked_tree(size: usize, per_chunk: usize) -> (Forest, NodeId) {
-    let (chunks, chunk_size) = if per_chunk == 0 {
-        (0, 0)
-    } else {
-        let chunk_size = per_chunk / PER_CHUNK_ITEM;
-        let chunks = size / (chunk_size * PER_CHUNK_ITEM);
-        (chunks, chunk_size)
-    };
-
-    // Make sure we have at least enough nodes to make reasonable palces to parent chunks under, and enough to really have `size` nodes.
-    let basic_nodes = usize::max(
-        1 + chunks / 10,
-        size - (chunks * PER_CHUNK_ITEM * chunk_size),
-    );
-    big_tree(basic_nodes, chunks, chunk_size)
-}
-
 fn walk_bench(b: &mut Bencher<WallTime>, size: usize, per_chunk: usize) {
     let (forest, id) = chunked_tree(size, per_chunk);
     let n = walk_all(forest.nav_from(id).unwrap());
@@ -79,17 +61,19 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     // group.bench_function("walk 1k nodes", |b| walk_bench(b, 1000, 0, 0));
     // group.bench_function("walk 10k nodes", |b| walk_bench(b, 10000, 0, 0));
     group.bench_function("walk 100k nodes", |b| walk_bench(b, 100000, 0));
-    group.bench_function("walk 100k chunked", |b| walk_bench(b, 100000, 5000));
+    group.bench_function("walk 100k chunked", |b| walk_bench(b, 100000, 5));
     group.bench_function("walk 1m nodes", |b| walk_bench(b, 1000000, 0));
-    group.bench_function("walk 1m chunked", |b| walk_bench(b, 1000000, 5000));
+    group.bench_function("walk 1m small chunked", |b| walk_bench(b, 1000000, 5));
+    group.bench_function("walk 1m big chunked", |b| walk_bench(b, 1000000, 5000));
     //group.bench_function("walk 10m nodes", |b| walk_bench(b, 10000000));
     // group.bench_function("insert 100 nodes", |b| insert_bench(b, 100, 0, 0));
     // group.bench_function("insert 1k nodes", |b| insert_bench(b, 1000, 0, 0));
     // group.bench_function("insert 10k nodes", |b| insert_bench(b, 10000, 0, 0));
     group.bench_function("insert 100k nodes", |b| insert_bench(b, 100000, 0));
-    group.bench_function("insert 100k chunked", |b| insert_bench(b, 100000, 5000));
+    group.bench_function("insert 100k chunked", |b| insert_bench(b, 100000, 5));
     group.bench_function("insert 1m nodes", |b| insert_bench(b, 1000000, 0));
-    group.bench_function("insert 1m chunked", |b| insert_bench(b, 1000000, 5000));
+    group.bench_function("insert 1m small chunked", |b| insert_bench(b, 1000000, 5));
+    group.bench_function("insert 1m big chunked", |b| insert_bench(b, 1000000, 5000));
     //group.bench_function("insert 10m nodes", |b| insert_bench(b, 10000000));
 
     group.finish();

@@ -17,13 +17,15 @@ pub mod util;
 
 pub mod test_stuff;
 
+type IdBase = u128;
+
 #[derive(Clone, PartialEq, Eq, Ord, Hash, PartialOrd, Copy)]
-pub struct Def(pub u128);
+pub struct Def(pub IdBase);
 #[derive(Clone, PartialEq, Eq, Ord, Hash, PartialOrd, Copy)]
-pub struct Label(pub u128);
+pub struct Label(pub IdBase);
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
-pub struct NodeId(pub u128);
+pub struct NodeId(pub IdBase);
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
 pub struct IdOffset(pub u32);
@@ -32,7 +34,7 @@ impl Add<IdOffset> for NodeId {
     type Output = NodeId;
 
     fn add(self, rhs: IdOffset) -> Self::Output {
-        NodeId(self.0 + rhs.0 as u128)
+        NodeId(self.0 + rhs.0 as IdBase)
     }
 }
 
@@ -44,7 +46,7 @@ impl Sub<NodeId> for NodeId {
     }
 }
 
-pub trait Node<TChild> {
+pub trait Node<TChild: ?Sized> {
     type TTrait: Iterator<Item = TChild>;
     type TTraitIterator: IntoIterator<Item = Label>;
 
