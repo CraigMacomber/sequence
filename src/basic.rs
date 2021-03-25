@@ -6,7 +6,7 @@ use std::{
     slice,
 };
 
-use crate::{util::ImSlice, Def, Label, Node, NodeId};
+use crate::{util::ImSlice, Def, Label, Node, NodeId, NodeNav};
 
 pub struct BasicNode {
     pub id: NodeId,
@@ -15,21 +15,9 @@ pub struct BasicNode {
     pub traits: HashMap<Label, Vec<BasicNode>>, // TODO: Use hash map from im_rc
 }
 
-impl<'a> Node<&'a BasicNode> for &'a BasicNode {
+impl<'a> NodeNav<&'a BasicNode> for &'a BasicNode {
     type TTrait = slice::Iter<'a, BasicNode>;
     type TTraitIterator = Cloned<Keys<'a, Label, Vec<BasicNode>>>;
-
-    // fn get_id(&self) -> NodeId {
-    //     self.id
-    // }
-
-    fn get_def(&self) -> Def {
-        self.def
-    }
-
-    fn get_payload(&self) -> Option<ImSlice> {
-        self.payload.as_ref().map(|p| p.focus())
-    }
 
     fn get_traits(&self) -> Self::TTraitIterator {
         self.traits.keys().cloned()
@@ -40,6 +28,16 @@ impl<'a> Node<&'a BasicNode> for &'a BasicNode {
             .get(&label)
             .map_or(EMPTY, |x| &x[..])
             .into_iter()
+    }
+}
+
+impl<'a> Node<&'a BasicNode> for &'a BasicNode {
+    fn get_def(&self) -> Def {
+        self.def
+    }
+
+    fn get_payload(&self) -> Option<ImSlice> {
+        self.payload.as_ref().map(|p| p.focus())
     }
 }
 

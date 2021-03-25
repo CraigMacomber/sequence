@@ -1,11 +1,11 @@
 //! Sequence of trees with identical schema and sequential ids (depth first pre-order).
 //! Owns the content. Compressed (one copy of schema, rest as blob)
 
-use std::{iter::Cloned, rc::Rc};
+use std::{iter::Cloned, rc::Rc, usize};
 
 use crate::{
     util::{slice_with_length, ImSlice},
-    Def, HasId, IdOffset, Label, Node, NodeId,
+    Def, HasId, IdOffset, Label, Node, NodeId, NodeNav,
 };
 
 #[derive(Clone)]
@@ -14,11 +14,38 @@ pub struct Chunk {
     pub schema: Rc<RootChunkSchema>,
 }
 
+impl PartialEq for Chunk {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.schema, &other.schema) & self.data.eq(&other.data)
+    }
+}
+
 pub struct RootChunkSchema {
     pub schema: ChunkSchema,
     // TODO: include parent info in this
     /// Derived data (from schema) to enable fast lookup of views from id.
-    id_offset_to_byte_offset_and_schema: Vec<Option<(u32, ChunkSchema)>>,
+    id_offset_to_byte_offset_and_schema: Vec<Option<OffsetInfo>>,
+}
+
+#[derive(Clone)]
+struct OffsetInfo {
+    byte_offset: u32,
+    schema: ChunkSchema,
+    parent: ParentInfo,
+}
+
+#[derive(Clone)]
+pub struct ParentInfo {
+    /// None for top level nodes in chunk
+    pub parent: Option<(IdOffset, Label)>,
+    pub index: usize,
+}
+
+#[derive(Clone)]
+pub struct OffsetInfoRef<'a> {
+    pub byte_offset: u32,
+    pub schema: &'a ChunkSchema,
+    pub parent: ParentInfo,
 }
 
 impl RootChunkSchema {
@@ -26,14 +53,19 @@ impl RootChunkSchema {
         let mut data_outer = vec![None; schema.id_stride as usize];
 
         fn add(
-            data: &mut [Option<(u32, ChunkSchema)>],
+            data: &mut [Option<OffsetInfo>],
             s: &ChunkSchema,
             byte_offset: u32,
             id_offset: usize,
+            parent: ParentInfo,
         ) {
             debug_assert!(data[id_offset].is_none());
-            data[id_offset] = Some((byte_offset, s.clone()));
-            for sub_schema in s.traits.values() {
+            data[id_offset] = Some(OffsetInfo {
+                byte_offset,
+                schema: s.clone(),
+                parent,
+            });
+            for (label, sub_schema) in s.traits.iter() {
                 for i in 0..sub_schema.schema.node_count {
                     add(
                         data,
@@ -42,12 +74,25 @@ impl RootChunkSchema {
                         id_offset
                             + sub_schema.id_offset.0 as usize
                             + i as usize * sub_schema.schema.id_stride as usize,
+                        ParentInfo {
+                            parent: Some((IdOffset(id_offset as u32), *label)),
+                            index: i as usize,
+                        },
                     )
                 }
             }
         };
 
-        add(&mut data_outer.as_mut_slice(), &schema, 0, 0);
+        add(
+            &mut data_outer.as_mut_slice(),
+            &schema,
+            0,
+            0,
+            ParentInfo {
+                parent: None,
+                index: 0,
+            },
+        );
 
         RootChunkSchema {
             schema,
@@ -91,28 +136,49 @@ pub struct ChunkView<'a> {
 }
 
 impl<'a> Chunk {
+    /// Returns None if id not present.
     pub fn lookup(&'a self, first_id: NodeId, id: NodeId) -> Option<ChunkOffset<'a>> {
+        match self.schema.lookup_schema(first_id, id) {
+            Some(info) => {
+                let data = slice_with_length(
+                    self.data.focus(),
+                    info.byte_offset as usize,
+                    info.schema.bytes_per_node as usize,
+                );
+                let view = ChunkView {
+                    first_id: id,
+                    schema: &info.schema,
+                    data,
+                };
+                Some(ChunkOffset { view, offset: 0 })
+            }
+            None => None,
+        }
+    }
+}
+
+impl<'a> RootChunkSchema {
+    /// Returns None if id not present.
+    pub fn lookup_schema(&'a self, first_id: NodeId, id: NodeId) -> Option<OffsetInfoRef> {
         if id < first_id {
             None
-        } else if id < first_id + IdOffset(self.schema.schema.id_stride * self.get_count() as u32) {
+        } else if id < first_id + IdOffset(self.schema.id_stride * self.schema.node_count) {
             let id_offset = (id - first_id).0;
-            let (div, rem) = num_integer::div_rem(id_offset, self.schema.schema.id_stride);
-            let (inner_byte_offset, schema) = &self.schema.id_offset_to_byte_offset_and_schema
-                [rem as usize]
-                .as_ref()
-                .unwrap();
-            let byte_offset = inner_byte_offset + div * self.schema.schema.bytes_per_node;
-            let data = slice_with_length(
-                self.data.focus(),
-                byte_offset as usize,
-                schema.bytes_per_node as usize,
-            );
-            let view = ChunkView {
-                first_id: id,
-                schema: &schema,
-                data,
+            let (div, rem) = num_integer::div_rem(id_offset, self.schema.id_stride);
+            let info = self.id_offset_to_byte_offset_and_schema[rem as usize].as_ref()?;
+            let byte_offset = info.byte_offset + div * self.schema.bytes_per_node;
+            let parent = ParentInfo {
+                parent: info.parent.parent,
+                index: match info.parent.parent {
+                    Some(_) => info.parent.index,
+                    None => div as usize,
+                },
             };
-            Some(ChunkOffset { view, offset: 0 })
+            Some(OffsetInfoRef {
+                byte_offset,
+                schema: &info.schema,
+                parent,
+            })
         } else {
             None
         }
@@ -151,24 +217,8 @@ impl<'a> ChunkOffset<'a> {
     }
 }
 
-// Views first item as chunk in as node
-impl<'a> Node<ChunkOffset<'a>> for ChunkOffset<'a> {
+impl<'a> NodeNav<ChunkOffset<'a>> for ChunkOffset<'a> {
     type TTrait = ChunkIterator<'a>;
-
-    fn get_def(&self) -> Def {
-        self.view.schema.def
-    }
-
-    fn get_payload(&self) -> Option<ImSlice> {
-        match self.view.schema.payload_size {
-            Some(p) => {
-                let node_data = self.data();
-                Some(slice_with_length(node_data, 0, p as usize))
-            }
-            None => None,
-        }
-    }
-
     type TTraitIterator = Cloned<std::collections::hash_map::Keys<'a, Label, OffsetSchema>>;
 
     fn get_traits(&self) -> Self::TTraitIterator {
@@ -195,6 +245,23 @@ impl<'a> Node<ChunkOffset<'a>> for ChunkOffset<'a> {
                 })
             }
             None => ChunkIterator::Empty,
+        }
+    }
+}
+
+// Views first item as chunk in as node
+impl<'a> Node<ChunkOffset<'a>> for ChunkOffset<'a> {
+    fn get_def(&self) -> Def {
+        self.view.schema.def
+    }
+
+    fn get_payload(&self) -> Option<ImSlice> {
+        match self.view.schema.payload_size {
+            Some(p) => {
+                let node_data = self.data();
+                Some(slice_with_length(node_data, 0, p as usize))
+            }
+            None => None,
         }
     }
 }

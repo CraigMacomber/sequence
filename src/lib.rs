@@ -24,7 +24,7 @@ pub struct Def(pub IdBase);
 #[derive(Clone, PartialEq, Eq, Ord, Hash, PartialOrd, Copy)]
 pub struct Label(pub IdBase);
 
-#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
+#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Hash)]
 pub struct NodeId(pub IdBase);
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
@@ -46,15 +46,19 @@ impl Sub<NodeId> for NodeId {
     }
 }
 
-pub trait Node<TChild: ?Sized> {
-    type TTrait: Iterator<Item = TChild>;
+/// Navigation part of Node
+pub trait NodeNav<TChild> {
+    type TTrait: IntoIterator<Item = TChild>;
     type TTraitIterator: IntoIterator<Item = Label>;
 
-    fn get_def(&self) -> Def;
-    fn get_payload(&self) -> Option<ImSlice>;
-
+    // TODO: Performance: walking traits could be faster if this returned a reference to the trait not just the labels (saves a map lookup)
     fn get_traits(&self) -> Self::TTraitIterator;
     fn get_trait(&self, label: Label) -> Self::TTrait;
+}
+
+pub trait Node<TChild>: NodeNav<TChild> {
+    fn get_def(&self) -> Def;
+    fn get_payload(&self) -> Option<ImSlice>;
 }
 
 pub trait HasId {

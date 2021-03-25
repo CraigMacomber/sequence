@@ -1,7 +1,8 @@
 //! Implementation of Node thats indirect, and supports multiple representations (chunk, and basic nodes)
 
 use crate::{
-    basic_indirect::BasicNode, chunk::ChunkOffset, forest::ChunkId, Def, HasId, Label, Node, NodeId,
+    basic_indirect::BasicNode, chunk::ChunkOffset, forest::ChunkId, Def, HasId, Label, Node,
+    NodeId, NodeNav,
 };
 
 pub enum Child<'a> {
@@ -10,8 +11,8 @@ pub enum Child<'a> {
 }
 
 pub enum TraitView<'a> {
-    Basic(<&'a BasicNode<ChunkId> as Node<ChunkId>>::TTrait),
-    Chunk(<ChunkOffset<'a> as Node<ChunkOffset<'a>>>::TTrait),
+    Basic(<&'a BasicNode<ChunkId> as NodeNav<ChunkId>>::TTrait),
+    Chunk(<ChunkOffset<'a> as NodeNav<ChunkOffset<'a>>>::TTrait),
 }
 
 #[derive(Clone)]
@@ -30,24 +31,10 @@ pub enum NodeView<'a> {
     // TODO: maybe chunks referencing external subtrees (so they can have child references like payloads)
 }
 
-impl<'a> Node<Child<'a>> for NodeView<'a> {
+impl<'a> NodeNav<Child<'a>> for NodeView<'a> {
     type TTrait = TraitView<'a>;
 
     type TTraitIterator = TraitIterator<'a>;
-
-    fn get_def(&self) -> Def {
-        match self {
-            NodeView::Single(s) => s.node.get_def(),
-            NodeView::Chunk(c) => c.get_def(),
-        }
-    }
-
-    fn get_payload(&self) -> Option<crate::util::ImSlice> {
-        match self {
-            NodeView::Single(s) => s.node.get_payload(),
-            NodeView::Chunk(c) => c.get_payload(),
-        }
-    }
 
     fn get_traits(&self) -> Self::TTraitIterator {
         match self {
@@ -60,6 +47,22 @@ impl<'a> Node<Child<'a>> for NodeView<'a> {
         match self {
             NodeView::Single(s) => TraitView::Basic(s.node.get_trait(label)),
             NodeView::Chunk(c) => TraitView::Chunk(c.get_trait(label)),
+        }
+    }
+}
+
+impl<'a> Node<Child<'a>> for NodeView<'a> {
+    fn get_def(&self) -> Def {
+        match self {
+            NodeView::Single(s) => s.node.get_def(),
+            NodeView::Chunk(c) => c.get_def(),
+        }
+    }
+
+    fn get_payload(&self) -> Option<crate::util::ImSlice> {
+        match self {
+            NodeView::Single(s) => s.node.get_payload(),
+            NodeView::Chunk(c) => c.get_payload(),
         }
     }
 }
@@ -85,8 +88,8 @@ impl<'a> Iterator for TraitView<'a> {
 }
 
 pub enum TraitIterator<'a> {
-    Single(<&'a BasicNode<ChunkId> as Node<ChunkId>>::TTraitIterator),
-    Chunk(<ChunkOffset<'a> as Node<ChunkOffset<'a>>>::TTraitIterator),
+    Single(<&'a BasicNode<ChunkId> as NodeNav<ChunkId>>::TTraitIterator),
+    Chunk(<ChunkOffset<'a> as NodeNav<ChunkOffset<'a>>>::TTraitIterator),
 }
 
 impl<'a> Iterator for TraitIterator<'a> {

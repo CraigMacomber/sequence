@@ -1,12 +1,17 @@
 //! Generic Nav which handles child id indirection via a Resolver which returns an iterable of Nodes for an Id.
 
-use crate::{Def, HasId, Label, Node, NodeId};
+use crate::{forest::ParentInfo, Def, HasId, Label, Node, NodeId, NodeNav};
 
 /// Chunk resolver
 pub trait Resolver<Node>: Copy {
     type ChunkId;
     type Iter: Iterator<Item = Node>;
     fn expand(&self, chunk: Self::ChunkId) -> Self::Iter;
+}
+
+/// Parent resolver
+pub trait ParentResolver<Node>: Copy {
+    fn get_parent(&self, node: &Node) -> Option<ParentInfo<Node>>;
 }
 
 #[derive(Clone)]
@@ -30,36 +35,35 @@ where
     }
 }
 
+impl<R, TNode> Nav<R, TNode>
+where
+    R: ParentResolver<TNode>,
+{
+    pub fn parent(&self) -> Option<ParentInfo<Self>> {
+        self.resolver.get_parent(&self.view).map(|p| ParentInfo {
+            node: Self::new(self.resolver, p.node),
+            label: p.label,
+        })
+    }
+}
+
 pub struct TraitNav<R, TNode>
 where
     R: Resolver<TNode>,
     TNode: Node<<R as Resolver<TNode>>::ChunkId>,
 {
     resolver: R,
-    view: <TNode as Node<<R as Resolver<TNode>>::ChunkId>>::TTrait,
+    view: <<TNode as NodeNav<<R as Resolver<TNode>>::ChunkId>>::TTrait as IntoIterator>::IntoIter,
     pending: Option<<R as Resolver<TNode>>::Iter>,
 }
 
-impl<R, TNode> Node<Nav<R, TNode>> for Nav<R, TNode>
+impl<R, TNode> NodeNav<Nav<R, TNode>> for Nav<R, TNode>
 where
     R: Resolver<TNode>,
     TNode: Node<<R as Resolver<TNode>>::ChunkId>,
 {
     type TTrait = TraitNav<R, TNode>;
-
     type TTraitIterator = TNode::TTraitIterator;
-
-    // fn get_id(&self) -> NodeId {
-    //     self.view.get_id()
-    // }
-
-    fn get_def(&self) -> Def {
-        self.view.get_def()
-    }
-
-    fn get_payload(&self) -> Option<crate::util::ImSlice> {
-        self.view.get_payload()
-    }
 
     fn get_traits(&self) -> Self::TTraitIterator {
         self.view.get_traits()
@@ -67,10 +71,24 @@ where
 
     fn get_trait(&self, label: Label) -> Self::TTrait {
         TraitNav {
-            view: self.view.get_trait(label),
+            view: self.view.get_trait(label).into_iter(),
             resolver: self.resolver,
             pending: None,
         }
+    }
+}
+
+impl<R, TNode> Node<Nav<R, TNode>> for Nav<R, TNode>
+where
+    R: Resolver<TNode>,
+    TNode: Node<<R as Resolver<TNode>>::ChunkId>,
+{
+    fn get_def(&self) -> Def {
+        self.view.get_def()
+    }
+
+    fn get_payload(&self) -> Option<crate::util::ImSlice> {
+        self.view.get_payload()
     }
 }
 

@@ -6,10 +6,10 @@ use std::{iter::Cloned, slice};
 
 use crate::{
     util::{ImHashMap, ImSlice},
-    Def, Label, Node,
+    Def, Label, Node, NodeNav,
 };
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct BasicNode<Child> {
     pub def: Def,
     // Payload is often not used, so indirect it to keep the size down.
@@ -18,21 +18,9 @@ pub struct BasicNode<Child> {
     pub traits: ImHashMap<Label, Vec<Child>>,
 }
 
-impl<'a, Child: Clone> Node<Child> for &'a BasicNode<Child> {
+impl<'a, Child: Clone> NodeNav<Child> for &'a BasicNode<Child> {
     type TTrait = Cloned<slice::Iter<'a, Child>>;
     type TTraitIterator = Cloned<im_rc::hashmap::Keys<'a, Label, Vec<Child>>>;
-
-    fn get_def(&self) -> Def {
-        self.def
-    }
-
-    fn get_payload(&self) -> Option<ImSlice> {
-        let o = &self.payload;
-        match o {
-            Some(p) => Some(p.focus()),
-            None => None,
-        }
-    }
 
     fn get_traits(&self) -> Self::TTraitIterator {
         self.traits.keys().cloned()
@@ -43,6 +31,20 @@ impl<'a, Child: Clone> Node<Child> for &'a BasicNode<Child> {
             .get(&label)
             .map_or(BasicNode::<Child>::EMPTY.iter(), |x| x.iter())
             .cloned()
+    }
+}
+
+impl<'a, Child: Clone> Node<Child> for &'a BasicNode<Child> {
+    fn get_def(&self) -> Def {
+        self.def
+    }
+
+    fn get_payload(&self) -> Option<ImSlice> {
+        let o = &self.payload;
+        match o {
+            Some(p) => Some(p.focus()),
+            None => None,
+        }
     }
 }
 
