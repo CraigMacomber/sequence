@@ -9,6 +9,7 @@ pub mod basic;
 pub mod basic_indirect;
 pub mod chunk;
 pub mod forest;
+pub mod id_compress;
 pub mod indirect;
 pub mod indirect_nav;
 pub mod nav;
