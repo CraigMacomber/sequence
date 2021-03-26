@@ -1,4 +1,11 @@
-//! Implementation of Node thats indirect, and supports multiple representations (chunk, and basic nodes)
+//! Utilities for viewing trees of `basic_indirect::BasicNode | Chunk` nodes
+//! where the children of the basic nodes are `ChunkId`s which correspond to either a chunk, or a BasicNode.
+//!
+//! The Node implemented here is abstracts this as children are wither Nodes, or ChunkIds.
+//! When traversing within a chunk, no indirection is involved, looking up an Id is only required when traversing a BasicNode.
+//! Abstracting away this difference
+//! (and dealing with the fact that a trait may contain a mix of chunks and basic nodes, and the chunks might contain multiple top level nodes)
+//! is done by `indirect_nav` which wraps this node in a Node implementation up with a forest using `Nav`.
 
 use crate::{
     basic_indirect::BasicNode, chunk::ChunkOffset, forest::ChunkId, Def, HasId, Label, Node,

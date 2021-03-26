@@ -2,6 +2,8 @@
 //! The allocation scheme here is not stable, the short ids depend on the order they are requested.
 //! The ShortIds are 64 bits (to make sure they don't run out), but an attempt is make to use the smaller ones first.
 //! This is done so systems which handle smaller numbers more efficiently (ex: json serialization) or V8 can benefit.
+//!
+//! This is currently unused, and is just a experiment/example.
 
 use std::{collections::HashMap, ops::RangeInclusive};
 

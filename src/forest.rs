@@ -1,3 +1,12 @@
+//! Collection of Trees
+//!
+//! Trees are stored as map from Id to Chunk, where a chunk is a collection of nodes within an id range (stored under the first id in the range).
+//!
+//! This is used by `indirect_nav` to store `NavChunks` which are either a `basic_indirect::BasicNode` or a `Chunk`.
+//!
+//! Nav provides a wrapper around a possibly indirect node (refers to children by id) and a Resolver.
+//! Implementing Resolver for Forest for a specific node type (like `indirect_nav` does) allows using Nav to traverse a Forest.
+
 use std::cell::{Ref, RefCell};
 
 use crate::{util::ImHashMap, Label, NodeId, NodeNav};

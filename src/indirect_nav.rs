@@ -1,6 +1,4 @@
-//! Hookup to indirect node to Nav.
-//! This takes indirect::NodeView, and wraps it with a recursive nav type that handles child lookup using Forest.
-//! uses `nav` to do this.
+//! Hookup the Node implemented in `indirect` to `Nav` using `Forest` as the `Resolver`.
 
 use crate::{
     basic_indirect::BasicNode,
@@ -129,39 +127,8 @@ impl Forest {
     }
 }
 
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-    use crate::{Def, Label, Node};
-
-    #[test]
-    fn it_works() {
-        let mut forest = Forest::new();
-        forest.insert(
-            ChunkId(NodeId(5)),
-            NavChunk::Single(BasicNode {
-                def: Def(1),
-                payload: None,
-                traits: im_rc::HashMap::default(),
-            }),
-        );
-
-        let n = forest.find_node(NodeId(5)).unwrap();
-        assert!(n.get_def().0 == 1);
-
-        let nav = forest.nav_from(NodeId(5)).unwrap();
-
-        let children: Vec<_> = nav.get_trait(Label(9)).collect();
-        assert!(children.len() == 0);
-
-        let n = forest.find_nodes(ChunkId(NodeId(5))).unwrap();
-        let n = forest::Nodes::get(&n, NodeId(5), NodeId(5)).unwrap();
-        assert!(n.get_def().0 == 1);
-    }
-}
-
-/// For parent info. Maybe redesign this (make more things use this NodeNav impl, or not require it)
+/// For parent info: Allow viewing the tree of chunks as Node
+/// TODO: maybe there are other uses for this? Might be able to simplify code elsewhere.
 
 impl<'a> NodeNav<ChunkId> for &'a NavChunk {
     type TTrait = TraitView<'a>;
@@ -211,5 +178,29 @@ impl<'a> Iterator for TraitIterator<'a> {
             TraitIterator::Single(ref mut s) => s.next(),
             TraitIterator::Empty => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Def;
+
+    #[test]
+    fn it_works() {
+        let mut forest = Forest::new();
+        forest.insert(
+            ChunkId(NodeId(5)),
+            NavChunk::Single(BasicNode {
+                def: Def(1),
+                payload: None,
+                traits: im_rc::HashMap::default(),
+            }),
+        );
+
+        let _n = forest.find_node(NodeId(5)).unwrap();
+        let _nav = forest.nav_from(NodeId(5)).unwrap();
+        let n = forest.find_nodes(ChunkId(NodeId(5))).unwrap();
+        let _n = forest::Nodes::get(&n, NodeId(5), NodeId(5)).unwrap();
     }
 }

@@ -72,7 +72,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     // precision and counteract the resulting noise.
     group.significance_level(0.1).sample_size(10); //.measurement_time();
 
-    for count in [100, 1_000, 1_000_000].iter().cloned() {
+    for count in [1_000_000].iter().cloned() {
         group.bench_function(format!("{} node insert", count), |b| {
             insert_bench(b, count, 0, false)
         });
@@ -104,25 +104,6 @@ pub fn criterion_benchmark(c: &mut Criterion) {
             );
         }
     }
-
-    // // group.bench_function("walk 100 nodes", |b| walk_bench(b, 100, 0, 0));
-    // // group.bench_function("walk 1k nodes", |b| walk_bench(b, 1000, 0, 0));
-    // // group.bench_function("walk 10k nodes", |b| walk_bench(b, 10000, 0, 0));
-    // group.bench_function("walk 100k nodes", |b| walk_bench(b, 100000, 0));
-    // group.bench_function("walk 100k chunked", |b| walk_bench(b, 100000, 5));
-    // group.bench_function("walk 1m nodes", |b| walk_bench(b, 1000000, 0));
-    // group.bench_function("walk 1m small chunked", |b| walk_bench(b, 1000000, 5));
-    // group.bench_function("walk 1m big chunked", |b| walk_bench(b, 1000000, 5000));
-    // //group.bench_function("walk 10m nodes", |b| walk_bench(b, 10000000));
-    // // group.bench_function("insert 100 nodes", |b| insert_bench(b, 100, 0, 0));
-    // // group.bench_function("insert 1k nodes", |b| insert_bench(b, 1000, 0, 0));
-    // // group.bench_function("insert 10k nodes", |b| insert_bench(b, 10000, 0, 0));
-    // group.bench_function("insert 100k nodes", |b| insert_bench(b, 100000, 0));
-    // group.bench_function("insert 100k chunked", |b| insert_bench(b, 100000, 5));
-    // group.bench_function("insert 1m nodes", |b| insert_bench(b, 1000000, 0));
-    // group.bench_function("insert 1m small chunked", |b| insert_bench(b, 1000000, 5));
-    // group.bench_function("insert 1m big chunked", |b| insert_bench(b, 1000000, 5000));
-    // //group.bench_function("insert 10m nodes", |b| insert_bench(b, 10000000));
 
     group.finish();
 }

@@ -1,5 +1,9 @@
 //! Simple tree that owns generic tokens instead of its children.
+//! Can be used with Forest to form a Tree.
+//! Nav can combine this with a Forest to produce a Tree API with child access methods.
+//!
 //! Due to issues with recursive types, this can't be used like `basic` to own its children.
+//! If that worked it would look like:
 //! type BasicRecursive<Id> = BasicNode<Id, BasicRecursive<Id>>;
 
 use std::{iter::Cloned, slice};

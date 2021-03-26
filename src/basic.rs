@@ -1,4 +1,5 @@
-//! Simple tree that owns its children
+//! Simple tree that owns its children.
+//! This serves as an example of the simplest way to implement Node, and is actually used.
 
 use std::{
     collections::{hash_map::Keys, HashMap},
