@@ -23,14 +23,14 @@ pub struct BasicNode<Child> {
 }
 
 impl<'a, Child: Clone> NodeNav<Child> for &'a BasicNode<Child> {
-    type TTrait = Cloned<slice::Iter<'a, Child>>;
-    type TTraitIterator = Cloned<im_rc::hashmap::Keys<'a, Label, Vec<Child>>>;
+    type TTraitChildren = Cloned<slice::Iter<'a, Child>>;
+    type TLabels = Cloned<im_rc::hashmap::Keys<'a, Label, Vec<Child>>>;
 
-    fn get_traits(&self) -> Self::TTraitIterator {
+    fn get_traits(&self) -> Self::TLabels {
         self.traits.keys().cloned()
     }
 
-    fn get_trait(&self, label: Label) -> Self::TTrait {
+    fn get_trait(&self, label: Label) -> Self::TTraitChildren {
         self.traits
             .get(&label)
             .map_or(BasicNode::<Child>::EMPTY.iter(), |x| x.iter())

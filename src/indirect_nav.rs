@@ -1,4 +1,4 @@
-//! Hookup the Node implemented in `indirect` to `Nav` using `Forest` as the `Resolver`.
+//! Hookup the [BasicNode] to [Nav] using [Forest] as the [Resolver].
 
 use crate::{
     basic_indirect::BasicNode,
@@ -131,17 +131,17 @@ impl Forest {
 /// TODO: maybe there are other uses for this? Might be able to simplify code elsewhere.
 
 impl<'a> NodeNav<ChunkId> for &'a NavChunk {
-    type TTrait = TraitView<'a>;
-    type TTraitIterator = TraitIterator<'a>;
+    type TTraitChildren = TraitView<'a>;
+    type TLabels = TraitIterator<'a>;
 
-    fn get_traits(&self) -> Self::TTraitIterator {
+    fn get_traits(&self) -> Self::TLabels {
         match self {
             NavChunk::Single(s) => TraitIterator::Single(s.get_traits()),
             NavChunk::Chunk(_) => TraitIterator::Empty,
         }
     }
 
-    fn get_trait(&self, label: Label) -> Self::TTrait {
+    fn get_trait(&self, label: Label) -> Self::TTraitChildren {
         match self {
             NavChunk::Single(s) => TraitView::Basic(s.get_trait(label)),
             NavChunk::Chunk(_) => TraitView::Empty,
@@ -150,7 +150,7 @@ impl<'a> NodeNav<ChunkId> for &'a NavChunk {
 }
 
 pub enum TraitView<'a> {
-    Basic(<&'a BasicNode<ChunkId> as NodeNav<ChunkId>>::TTrait),
+    Basic(<&'a BasicNode<ChunkId> as NodeNav<ChunkId>>::TTraitChildren),
     Empty,
 }
 
@@ -166,7 +166,7 @@ impl<'a> Iterator for TraitView<'a> {
 }
 
 pub enum TraitIterator<'a> {
-    Single(<&'a BasicNode<ChunkId> as NodeNav<ChunkId>>::TTraitIterator),
+    Single(<&'a BasicNode<ChunkId> as NodeNav<ChunkId>>::TLabels),
     Empty,
 }
 

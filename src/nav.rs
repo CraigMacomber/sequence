@@ -53,7 +53,7 @@ where
     TNode: Node<<R as Resolver<TNode>>::ChunkId>,
 {
     resolver: R,
-    view: <<TNode as NodeNav<<R as Resolver<TNode>>::ChunkId>>::TTrait as IntoIterator>::IntoIter,
+    view: <<TNode as NodeNav<<R as Resolver<TNode>>::ChunkId>>::TTraitChildren as IntoIterator>::IntoIter,
     pending: Option<<R as Resolver<TNode>>::Iter>,
 }
 
@@ -62,14 +62,14 @@ where
     R: Resolver<TNode>,
     TNode: Node<<R as Resolver<TNode>>::ChunkId>,
 {
-    type TTrait = TraitNav<R, TNode>;
-    type TTraitIterator = TNode::TTraitIterator;
+    type TTraitChildren = TraitNav<R, TNode>;
+    type TLabels = TNode::TLabels;
 
-    fn get_traits(&self) -> Self::TTraitIterator {
+    fn get_traits(&self) -> Self::TLabels {
         self.view.get_traits()
     }
 
-    fn get_trait(&self, label: Label) -> Self::TTrait {
+    fn get_trait(&self, label: Label) -> Self::TTraitChildren {
         TraitNav {
             view: self.view.get_trait(label).into_iter(),
             resolver: self.resolver,

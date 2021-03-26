@@ -214,14 +214,14 @@ impl<'a> ChunkOffset<'a> {
 }
 
 impl<'a> NodeNav<ChunkOffset<'a>> for ChunkOffset<'a> {
-    type TTrait = ChunkIterator<'a>;
-    type TTraitIterator = Cloned<std::collections::hash_map::Keys<'a, Label, OffsetSchema>>;
+    type TTraitChildren = ChunkIterator<'a>;
+    type TLabels = Cloned<std::collections::hash_map::Keys<'a, Label, OffsetSchema>>;
 
-    fn get_traits(&self) -> Self::TTraitIterator {
+    fn get_traits(&self) -> Self::TLabels {
         self.view.schema.traits.keys().cloned()
     }
 
-    fn get_trait(&self, label: Label) -> Self::TTrait {
+    fn get_trait(&self, label: Label) -> Self::TTraitChildren {
         match self.view.schema.traits.get(&label) {
             Some(x) => {
                 let node_data = self.data();

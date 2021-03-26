@@ -1,25 +1,29 @@
-//! Utilities for viewing trees of `basic_indirect::BasicNode | Chunk` nodes
-//! where the children of the basic nodes are `ChunkId`s which correspond to either a chunk, or a BasicNode.
+//! Utilities for viewing trees of mixed [BasicNode] and [crate::chunk::Chunk].
+//! where the children of the basic nodes are [ChunkId]s which correspond to either a chunk, or a BasicNode.
 //!
-//! The Node implemented here is abstracts this as children are wither Nodes, or ChunkIds.
+//! The [Node] implemented here is abstracts this as children are which are either Nodes, or ChunkIds.
 //! When traversing within a chunk, no indirection is involved, looking up an Id is only required when traversing a BasicNode.
+//!
 //! Abstracting away this difference
 //! (and dealing with the fact that a trait may contain a mix of chunks and basic nodes, and the chunks might contain multiple top level nodes)
-//! is done by `indirect_nav` which wraps this node in a Node implementation up with a forest using `Nav`.
+//! is done by [crate::indirect_nav] which wraps this node in a Node implementation up with a forest using [crate::nav::Nav].
 
 use crate::{
     basic_indirect::BasicNode, chunk::ChunkOffset, forest::ChunkId, Def, HasId, Label, Node,
     NodeId, NodeNav,
 };
 
+/// Child type for the [Node].
 pub enum Child<'a> {
+    /// Parent is a [BasicNode]: may resolve to either a [BasicNode] or a [crate::chunk::Chunk]
     Id(ChunkId),
+    /// A node within a [crate::chunk::Chunk]: can the the child of another node within the same chunk.
     Chunk(ChunkOffset<'a>),
 }
 
 pub enum TraitView<'a> {
-    Basic(<&'a BasicNode<ChunkId> as NodeNav<ChunkId>>::TTrait),
-    Chunk(<ChunkOffset<'a> as NodeNav<ChunkOffset<'a>>>::TTrait),
+    Basic(<&'a BasicNode<ChunkId> as NodeNav<ChunkId>>::TTraitChildren),
+    Chunk(<ChunkOffset<'a> as NodeNav<ChunkOffset<'a>>>::TTraitChildren),
 }
 
 #[derive(Clone)]
@@ -39,18 +43,18 @@ pub enum NodeView<'a> {
 }
 
 impl<'a> NodeNav<Child<'a>> for NodeView<'a> {
-    type TTrait = TraitView<'a>;
+    type TTraitChildren = TraitView<'a>;
 
-    type TTraitIterator = TraitIterator<'a>;
+    type TLabels = TraitIterator<'a>;
 
-    fn get_traits(&self) -> Self::TTraitIterator {
+    fn get_traits(&self) -> Self::TLabels {
         match self {
             NodeView::Single(s) => TraitIterator::Single(s.node.get_traits()),
             NodeView::Chunk(c) => TraitIterator::Chunk(c.get_traits()),
         }
     }
 
-    fn get_trait(&self, label: Label) -> Self::TTrait {
+    fn get_trait(&self, label: Label) -> Self::TTraitChildren {
         match self {
             NodeView::Single(s) => TraitView::Basic(s.node.get_trait(label)),
             NodeView::Chunk(c) => TraitView::Chunk(c.get_trait(label)),
@@ -95,8 +99,8 @@ impl<'a> Iterator for TraitView<'a> {
 }
 
 pub enum TraitIterator<'a> {
-    Single(<&'a BasicNode<ChunkId> as NodeNav<ChunkId>>::TTraitIterator),
-    Chunk(<ChunkOffset<'a> as NodeNav<ChunkOffset<'a>>>::TTraitIterator),
+    Single(<&'a BasicNode<ChunkId> as NodeNav<ChunkId>>::TLabels),
+    Chunk(<ChunkOffset<'a> as NodeNav<ChunkOffset<'a>>>::TLabels),
 }
 
 impl<'a> Iterator for TraitIterator<'a> {

@@ -17,14 +17,14 @@ pub struct BasicNode {
 }
 
 impl<'a> NodeNav<&'a BasicNode> for &'a BasicNode {
-    type TTrait = slice::Iter<'a, BasicNode>;
-    type TTraitIterator = Cloned<Keys<'a, Label, Vec<BasicNode>>>;
+    type TTraitChildren = slice::Iter<'a, BasicNode>;
+    type TLabels = Cloned<Keys<'a, Label, Vec<BasicNode>>>;
 
-    fn get_traits(&self) -> Self::TTraitIterator {
+    fn get_traits(&self) -> Self::TLabels {
         self.traits.keys().cloned()
     }
 
-    fn get_trait(&self, label: Label) -> Self::TTrait {
+    fn get_trait(&self, label: Label) -> Self::TTraitChildren {
         self.traits
             .get(&label)
             .map_or(EMPTY, |x| &x[..])
