@@ -67,41 +67,40 @@ fn insert_bench(b: &mut Bencher<WallTime>, size: usize, per_chunk: usize, check_
 }
 
 pub fn criterion_benchmark(c: &mut Criterion) {
-    let mut group = c.benchmark_group("big");
+    let mut group = c.benchmark_group("forest");
     // Configure Criterion.rs to detect smaller differences and increase sample size to improve
     // precision and counteract the resulting noise.
     group.significance_level(0.1).sample_size(10); //.measurement_time();
 
     for count in [100, 1_000, 1_000_000].iter().cloned() {
-        group.bench_function(format!("walk {} nodes nav", count), |b| {
-            walk_bench(b, count, 0)
-        });
-        group.bench_function(format!("walk {} nodes", count), |b| {
-            walk_direct_bench(b, count)
-        });
-        group.bench_function(format!("insert {} nodes", count), |b| {
+        group.bench_function(format!("{} node insert", count), |b| {
             insert_bench(b, count, 0, false)
         });
-
-        group.bench_function(format!("insert {} nodes gen parents", count), |b| {
+        group.bench_function(format!("{} node insert + update parents", count), |b| {
             insert_bench(b, count, 0, true)
+        });
+        group.bench_function(format!("{} node walk", count), |b| {
+            walk_direct_bench(b, count)
+        });
+        group.bench_function(format!("{} node walk with nav", count), |b| {
+            walk_bench(b, count, 0)
         });
 
         for chunk_size in [5, 1_000].iter().cloned() {
             group.bench_function(
-                format!("walk {} nodes chunks of size {} nav", count, chunk_size),
-                |b| walk_bench(b, count, chunk_size),
-            );
-            group.bench_function(
-                format!("insert {} nodes chunks of size {}", count, chunk_size),
+                format!("{} node insert in chunks of {}", count, chunk_size),
                 |b| insert_bench(b, count, chunk_size, false),
             );
             group.bench_function(
                 format!(
-                    "insert {} nodes chunks of size {} gen parents",
+                    "{} node insert in chunks of {} + update parents",
                     count, chunk_size
                 ),
                 |b| insert_bench(b, count, chunk_size, true),
+            );
+            group.bench_function(
+                format!("{} node walk with nav over chunks of {}", count, chunk_size),
+                |b| walk_bench(b, count, chunk_size),
             );
         }
     }
