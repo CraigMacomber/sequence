@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 
 use crate::{util::ImHashMap, Label, NodeId, NodeNav};
 use im_rc::ordmap::DiffItem;
@@ -73,11 +73,11 @@ pub struct ParentInfo<TNode> {
     pub label: Label,
 }
 
-impl<'a, TNodes: 'a> Forest<TNodes>
+impl<TNodes> Forest<TNodes>
 where
-    &'a TNodes: Nodes,
+    for<'a> &'a TNodes: Nodes,
 {
-    pub fn find_node(&'a self, id: NodeId) -> Option<<&'a TNodes as Nodes>::View> {
+    pub fn find_node(&self, id: NodeId) -> Option<<&TNodes as Nodes>::View> {
         match self.map.get_prev(&ChunkId(id)) {
             Some((chunk, v)) => v.get(chunk.0, id),
             None => None,
@@ -85,7 +85,7 @@ where
     }
 }
 
-impl<'a, TNodes> Forest<TNodes> {
+impl<TNodes> Forest<TNodes> {
     pub fn new() -> Self {
         Forest {
             map: im_rc::OrdMap::default(),
@@ -99,7 +99,7 @@ impl<'a, TNodes> Forest<TNodes> {
     }
 
     /// If there is an owning nodes for id, this returns it, but it may also return non owning nodes
-    pub fn find_nodes_from_node(&'a self, id: NodeId) -> Option<(&'a ChunkId, &'a TNodes)> {
+    pub fn find_nodes_from_node(&self, id: NodeId) -> Option<(&ChunkId, &TNodes)> {
         self.map.get_prev(&ChunkId(id))
     }
 }
@@ -149,34 +149,7 @@ fn update_forest_parents<'a, TNodes>(
     }
 }
 
-pub fn make_new_parent_info<'a, TNodes>(
-    f: &'a Forest<TNodes>,
-    p: &'a ForestParents<TNodes>,
-) -> ForestParents<TNodes>
-where
-    TNodes: PartialEq<TNodes>,
-    &'a TNodes: NodeNav<ChunkId>,
-{
-    let mut parent_data = p.parent_data.clone();
-    update_forest_parents(&f.map, &p.map, &mut parent_data);
-
-    ForestParents {
-        map: f.map.clone(),
-        parent_data,
-    }
-}
-
-pub fn update_parent_info<'a, TNodes>(f: &'a Forest<TNodes>, p: &'a mut ForestParents<TNodes>)
-where
-    TNodes: PartialEq<TNodes>,
-    &'a TNodes: NodeNav<ChunkId>,
-{
-    let result = make_new_parent_info(f, p);
-    todo!()
-    //*p = result;
-}
-
-impl<'a, TNodes: 'a> Forest<TNodes>
+impl<TNodes> Forest<TNodes>
 where
     TNodes: Clone,
 {
@@ -187,5 +160,20 @@ where
     /// Inserts a new chunk. May replace an existing one.
     pub fn insert(&mut self, id: ChunkId, value: TNodes) {
         self.map.insert(id, value);
+    }
+}
+
+impl<TNodes> Forest<TNodes>
+where
+    TNodes: PartialEq<TNodes>,
+    for<'a> &'a TNodes: NodeNav<ChunkId>,
+{
+    pub fn get_parent_data(&self) -> Ref<ImHashMap<ChunkId, ParentInfo<ChunkId>>> {
+        update_forest_parents(
+            &self.map,
+            &self.old_map.borrow(),
+            &mut self.parent_data.borrow_mut(),
+        );
+        self.parent_data.borrow()
     }
 }

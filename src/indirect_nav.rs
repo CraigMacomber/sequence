@@ -2,12 +2,10 @@
 //! This takes indirect::NodeView, and wraps it with a recursive nav type that handles child lookup using Forest.
 //! uses `nav` to do this.
 
-use forest::ForestParents;
-
 use crate::{
     basic_indirect::BasicNode,
     chunk::{Chunk, ChunkIterator, ChunkOffset},
-    forest::{self, make_new_parent_info, ChunkId, ParentInfo},
+    forest::{self, ChunkId, ParentInfo},
     indirect::{BasicView, Child, NodeView},
     nav::{Nav, ParentResolver, Resolver},
     HasId, Label, NodeId, NodeNav,
@@ -121,10 +119,7 @@ impl Forest {
     }
 
     fn get_parent_chunk_from_chunk_id<'a>(&'a self, id: ChunkId) -> Option<ParentInfo<ChunkId>> {
-        // TODO: Performance: cache so its not computed from scratch every time.
-        let forest_parents_old = ForestParents::default();
-        let forest_parents = make_new_parent_info(self, &forest_parents_old);
-        forest_parents.parent_data.get(&id).cloned()
+        self.get_parent_data().get(&id).cloned()
     }
 }
 
