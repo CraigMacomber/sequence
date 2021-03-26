@@ -21,10 +21,10 @@ type IdBase = u128;
 
 #[derive(Clone, PartialEq, Eq, Ord, Hash, PartialOrd, Copy)]
 pub struct Def(pub IdBase);
-#[derive(Clone, PartialEq, Eq, Ord, Hash, PartialOrd, Copy)]
+#[derive(Clone, PartialEq, Eq, Ord, Hash, PartialOrd, Copy, Debug)]
 pub struct Label(pub IdBase);
 
-#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Hash)]
+#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Hash, Debug)]
 pub struct NodeId(pub IdBase);
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]

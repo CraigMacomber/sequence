@@ -170,8 +170,8 @@ impl<'a> RootChunkSchema {
             let parent = ParentInfo {
                 parent: info.parent.parent,
                 index: match info.parent.parent {
-                    Some(_) => info.parent.index,
-                    None => div as usize,
+                    Some(_) => info.parent.index, // Index of parent? Used as index of child?
+                    None => div as usize, // This is index within chunk at chunk top level, not index within trait.
                 },
             };
             Some(OffsetInfoRef {
@@ -205,10 +205,6 @@ impl Chunk {
 }
 
 impl<'a> ChunkOffset<'a> {
-    fn first_id(&self) -> NodeId {
-        self.view.first_id + IdOffset(self.offset as u32 * self.view.schema.id_stride as u32)
-    }
-
     fn data(&self) -> ImSlice<'a> {
         let offset = self.offset as usize;
         let stride = self.view.schema.bytes_per_node as usize;
@@ -234,7 +230,7 @@ impl<'a> NodeNav<ChunkOffset<'a>> for ChunkOffset<'a> {
                     x.byte_offset as usize,
                     x.schema.bytes_per_node as usize,
                 );
-                let trait_first_id = self.first_id() + x.id_offset;
+                let trait_first_id = self.get_id() + x.id_offset;
                 ChunkIterator::View(ChunkOffset {
                     offset: 0,
                     view: ChunkView {
@@ -269,7 +265,7 @@ impl<'a> Node<ChunkOffset<'a>> for ChunkOffset<'a> {
 // Views first item as chunk in as node
 impl<'a> HasId for ChunkOffset<'a> {
     fn get_id(&self) -> NodeId {
-        self.view.first_id + IdOffset(self.offset)
+        self.view.first_id + IdOffset(self.offset * self.view.schema.id_stride)
     }
 }
 

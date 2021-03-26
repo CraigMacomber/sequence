@@ -1,4 +1,4 @@
-use crate::{basic_indirect::BasicNode, Def, IdOffset, Label, Node, NodeId};
+use crate::{basic_indirect::BasicNode, Def, IdOffset, Label, Node, NodeId, NodeNav};
 use crate::{
     chunk::{Chunk, ChunkSchema, OffsetSchema, RootChunkSchema},
     forest::ChunkId,
@@ -87,62 +87,62 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
         nodes.push(id);
     }
 
-    // color channel schema
-    let sub_schema = ChunkSchema {
-        def: new_def(),
-        node_count: 1,
-        bytes_per_node: 1,
-        id_stride: 1,
-        payload_size: Some(1),
-        traits: HashMap::default(),
-    };
-
-    // Color schema (rgba)
-    let schema = ChunkSchema {
-        def: new_def(),
-        node_count: chunk_size as u32,
-        bytes_per_node: 4,
-        id_stride: 5,
-        payload_size: None,
-        traits: vec![
-            (
-                new_label(),
-                OffsetSchema {
-                    id_offset: IdOffset(1),
-                    byte_offset: 0,
-                    schema: sub_schema.clone(),
-                },
-            ),
-            (
-                new_label(),
-                OffsetSchema {
-                    id_offset: IdOffset(2),
-                    byte_offset: 1,
-                    schema: sub_schema.clone(),
-                },
-            ),
-            (
-                new_label(),
-                OffsetSchema {
-                    id_offset: IdOffset(3),
-                    byte_offset: 2,
-                    schema: sub_schema.clone(),
-                },
-            ),
-            (
-                new_label(),
-                OffsetSchema {
-                    id_offset: IdOffset(4),
-                    byte_offset: 3,
-                    schema: sub_schema.clone(),
-                },
-            ),
-        ]
-        .into_iter()
-        .collect(),
-    };
-
     if chunks > 0 {
+        // color channel schema
+        let sub_schema = ChunkSchema {
+            def: new_def(),
+            node_count: 1,
+            bytes_per_node: 1,
+            id_stride: 1,
+            payload_size: Some(1),
+            traits: HashMap::default(),
+        };
+
+        // Color schema (rgba)
+        let schema = ChunkSchema {
+            def: new_def(),
+            node_count: chunk_size as u32,
+            bytes_per_node: 4,
+            id_stride: 5,
+            payload_size: None,
+            traits: vec![
+                (
+                    new_label(),
+                    OffsetSchema {
+                        id_offset: IdOffset(1),
+                        byte_offset: 0,
+                        schema: sub_schema.clone(),
+                    },
+                ),
+                (
+                    new_label(),
+                    OffsetSchema {
+                        id_offset: IdOffset(2),
+                        byte_offset: 1,
+                        schema: sub_schema.clone(),
+                    },
+                ),
+                (
+                    new_label(),
+                    OffsetSchema {
+                        id_offset: IdOffset(3),
+                        byte_offset: 2,
+                        schema: sub_schema.clone(),
+                    },
+                ),
+                (
+                    new_label(),
+                    OffsetSchema {
+                        id_offset: IdOffset(4),
+                        byte_offset: 3,
+                        schema: sub_schema.clone(),
+                    },
+                ),
+            ]
+            .into_iter()
+            .collect(),
+        };
+
         let chunk_schema = Rc::new(RootChunkSchema::new(schema));
 
         for _ in 0..chunks {
@@ -184,11 +184,113 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
     (forest, root_id)
 }
 
+pub fn simple_tree(size: usize) -> (Forest, NodeId) {
+    let mut forest = Forest::new();
+    let id = RefCell::new(0);
+    let rng = RefCell::new(rand::thread_rng());
+    let new_node_id = || NodeId(rng.borrow_mut().gen());
+
+    let new_label = || -> Label { Label(rng.borrow_mut().gen()) };
+    let new_def = || -> Def { Def(rng.borrow_mut().gen()) };
+
+    let def = new_def();
+    let root_id = new_node_id();
+    let mut nodes = vec![root_id];
+    let label = new_label();
+
+    forest.insert(
+        ChunkId(root_id),
+        NavChunk::Single(BasicNode {
+            def,
+            payload: None,
+            traits: im_rc::HashMap::default(),
+        }),
+    );
+
+    // color channel schema
+    let sub_schema = ChunkSchema {
+        def: new_def(),
+        node_count: 1,
+        bytes_per_node: 1,
+        id_stride: 1,
+        payload_size: Some(1),
+        traits: HashMap::default(),
+    };
+
+    // Color schema (rgba)
+    let schema = ChunkSchema {
+        def: new_def(),
+        node_count: 2,
+        bytes_per_node: 1,
+        id_stride: 2,
+        payload_size: None,
+        traits: vec![(
+            new_label(),
+            OffsetSchema {
+                id_offset: IdOffset(1),
+                byte_offset: 0,
+                schema: sub_schema.clone(),
+            },
+        )]
+        .into_iter()
+        .collect(),
+    };
+
+    let chunk_schema = Rc::new(RootChunkSchema::new(schema));
+
+    for _ in 0..1 {
+        let id = new_node_id();
+        let data: im_rc::Vector<u8> = std::iter::repeat(&[1u8, 2])
+            .take(1)
+            .flat_map(|x| x.iter())
+            .cloned()
+            .collect();
+        forest.insert(
+            ChunkId(id),
+            NavChunk::Chunk(Chunk {
+                schema: chunk_schema.clone(),
+                data: data.into(),
+            }),
+        );
+
+        let parent_index = rng.borrow_mut().gen_range(0..nodes.len());
+        let parent_id = nodes[parent_index];
+
+        let parent = forest.find_nodes_mut(ChunkId(parent_id)).unwrap();
+
+        match parent {
+            NavChunk::Single(basic) => {
+                basic
+                    .traits
+                    .entry(label)
+                    .or_insert_with(|| vec![])
+                    .push(ChunkId(id));
+            }
+            NavChunk::Chunk(_) => {
+                panic!();
+            }
+        };
+    }
+
+    (forest, root_id)
+}
+
 pub fn walk_all<T: Node<T>>(n: T) -> usize {
     let mut count = 1;
     for t in n.get_traits() {
         for c in n.get_trait(t) {
             count += walk_all(c);
+        }
+    }
+    count
+}
+
+pub fn walk_direct_all(forest: &Forest, id: ChunkId) -> usize {
+    let mut count = 1;
+    let n = forest.find_nodes(id).unwrap();
+    for t in n.get_traits() {
+        for c in n.get_trait(t) {
+            count += walk_direct_all(forest, c);
         }
     }
     count
@@ -216,20 +318,108 @@ mod tests {
         check_parents(nav);
     }
 
+    // #[test]
+    // fn parents_with_chunks() {
+    //     let size = 100;
+    //     let (forest, id) = big_tree(size, 5, 100);
+    //     let nav = forest.nav_from(id).unwrap();
+    //     check_parents(nav);
+    // }
+
+    // #[test]
+    // fn parents_with_chunks_small() {
+    //     let size = 1;
+    //     let (forest, id) = big_tree(size, 1, 2);
+    //     let nav = forest.nav_from(id).unwrap();
+    //     check_parents(nav);
+    // }
+
     #[test]
-    fn parents_with_chunks() {
-        let size = 100;
-        let (forest, id) = big_tree(size, 5, 100);
+    fn parents_with_chunks_small2() {
+        let size = 1;
+        let (forest, id) = simple_tree(size);
         let nav = forest.nav_from(id).unwrap();
         check_parents(nav);
     }
+
+    // #[test]
+    // fn parents_with_chunk() {
+    //     let mut forest = Forest::new();
+    //     let id = RefCell::new(0);
+    //     let rng = RefCell::new(rand::thread_rng());
+
+    //     let new_node_id = || {
+    //         let mut id = id.borrow_mut();
+    //         *id = *id + 1;
+    //         NodeId(*id)
+    //     };
+    //     //let new_node_id = || NodeId(rng.borrow_mut().gen());
+
+    //     let new_label = || -> Label { Label(rng.borrow_mut().gen()) };
+    //     let new_def = || -> Def { Def(rng.borrow_mut().gen()) };
+
+    //     // color channel schema
+    //     let sub_schema = ChunkSchema {
+    //         def: new_def(),
+    //         node_count: 1,
+    //         bytes_per_node: 1,
+    //         id_stride: 1,
+    //         payload_size: Some(1),
+    //         traits: HashMap::default(),
+    //     };
+
+    //     // Color schema (rgba)
+    //     let schema = ChunkSchema {
+    //         def: new_def(),
+    //         node_count: 2,
+    //         bytes_per_node: 2,
+    //         id_stride: 5,
+    //         payload_size: None,
+    //         traits: vec![
+    //             (
+    //                 new_label(),
+    //                 OffsetSchema {
+    //                     id_offset: IdOffset(1),
+    //                     byte_offset: 0,
+    //                     schema: sub_schema.clone(),
+    //                 },
+    //             ),
+    //             (
+    //                 new_label(),
+    //                 OffsetSchema {
+    //                     id_offset: IdOffset(2),
+    //                     byte_offset: 1,
+    //                     schema: sub_schema.clone(),
+    //                 },
+    //             ),
+    //         ]
+    //         .into_iter()
+    //         .collect(),
+    //     };
+
+    //     let chunk_schema = Rc::new(RootChunkSchema::new(schema));
+
+    //     let id = new_node_id();
+    //     let data: im_rc::Vector<u8> = [1u8, 2, 3, 4].iter().cloned().collect();
+    //     forest.insert(
+    //         ChunkId(id),
+    //         NavChunk::Chunk(Chunk {
+    //             schema: chunk_schema.clone(),
+    //             data: data.into(),
+    //         }),
+    //     );
+
+    //     let nav = forest.nav_from(id).unwrap();
+    //     check_parents(nav);
+    // }
 
     pub fn check_parents(n: Nav) {
         for t in n.get_traits() {
             for c in n.get_trait(t) {
                 let p = c.parent().unwrap();
-                assert!(p.label == t);
-                assert!(p.node.get_id() == n.get_id());
+                assert_eq!(p.label, t);
+                println!("{}  {}  {}", p.node.get_id().0, n.get_id().0, c.get_id().0);
+                assert_eq!(p.node.get_id(), n.get_id());
                 check_parents(c);
             }
         }

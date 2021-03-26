@@ -4,7 +4,8 @@ use criterion::{
 use rand::Rng;
 use sequence::{
     basic,
-    test_stuff::{chunked_tree, walk_all},
+    forest::ChunkId,
+    test_stuff::{chunked_tree, walk_all, walk_direct_all},
     Def, Label, NodeId,
 };
 
@@ -47,8 +48,22 @@ fn walk_bench(b: &mut Bencher<WallTime>, size: usize, per_chunk: usize) {
     b.iter(|| black_box(walk_all(forest.nav_from(id).unwrap())));
 }
 
-fn insert_bench(b: &mut Bencher<WallTime>, size: usize, per_chunk: usize) {
-    b.iter(|| black_box(chunked_tree(size, per_chunk)));
+fn walk_direct_bench(b: &mut Bencher<WallTime>, size: usize) {
+    let (forest, id) = chunked_tree(size, 0);
+    let n = walk_all(forest.nav_from(id).unwrap());
+    assert!(n >= size);
+    assert!(n <= size * 2);
+    b.iter(|| black_box(walk_direct_all(&forest, ChunkId(id))));
+}
+
+fn insert_bench(b: &mut Bencher<WallTime>, size: usize, per_chunk: usize, check_parents: bool) {
+    b.iter(|| {
+        let (t, _id) = chunked_tree(size, per_chunk);
+        if check_parents {
+            t.get_parent_data();
+        }
+        black_box(t)
+    });
 }
 
 pub fn criterion_benchmark(c: &mut Criterion) {
@@ -57,24 +72,58 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     // precision and counteract the resulting noise.
     group.significance_level(0.1).sample_size(10); //.measurement_time();
 
-    // group.bench_function("walk 100 nodes", |b| walk_bench(b, 100, 0, 0));
-    // group.bench_function("walk 1k nodes", |b| walk_bench(b, 1000, 0, 0));
-    // group.bench_function("walk 10k nodes", |b| walk_bench(b, 10000, 0, 0));
-    group.bench_function("walk 100k nodes", |b| walk_bench(b, 100000, 0));
-    group.bench_function("walk 100k chunked", |b| walk_bench(b, 100000, 5));
-    group.bench_function("walk 1m nodes", |b| walk_bench(b, 1000000, 0));
-    group.bench_function("walk 1m small chunked", |b| walk_bench(b, 1000000, 5));
-    group.bench_function("walk 1m big chunked", |b| walk_bench(b, 1000000, 5000));
-    //group.bench_function("walk 10m nodes", |b| walk_bench(b, 10000000));
-    // group.bench_function("insert 100 nodes", |b| insert_bench(b, 100, 0, 0));
-    // group.bench_function("insert 1k nodes", |b| insert_bench(b, 1000, 0, 0));
-    // group.bench_function("insert 10k nodes", |b| insert_bench(b, 10000, 0, 0));
-    group.bench_function("insert 100k nodes", |b| insert_bench(b, 100000, 0));
-    group.bench_function("insert 100k chunked", |b| insert_bench(b, 100000, 5));
-    group.bench_function("insert 1m nodes", |b| insert_bench(b, 1000000, 0));
-    group.bench_function("insert 1m small chunked", |b| insert_bench(b, 1000000, 5));
-    group.bench_function("insert 1m big chunked", |b| insert_bench(b, 1000000, 5000));
-    //group.bench_function("insert 10m nodes", |b| insert_bench(b, 10000000));
+    for count in [100, 1_000, 1_000_000].iter().cloned() {
+        group.bench_function(format!("walk {} nodes nav", count), |b| {
+            walk_bench(b, count, 0)
+        });
+        group.bench_function(format!("walk {} nodes", count), |b| {
+            walk_direct_bench(b, count)
+        });
+        group.bench_function(format!("insert {} nodes", count), |b| {
+            insert_bench(b, count, 0, false)
+        });
+
+        group.bench_function(format!("insert {} nodes gen parents", count), |b| {
+            insert_bench(b, count, 0, true)
+        });
+
+        for chunk_size in [5, 1_000].iter().cloned() {
+            group.bench_function(
+                format!("walk {} nodes chunks of size {} nav", count, chunk_size),
+                |b| walk_bench(b, count, chunk_size),
+            );
+            group.bench_function(
+                format!("insert {} nodes chunks of size {}", count, chunk_size),
+                |b| insert_bench(b, count, chunk_size, false),
+            );
+            group.bench_function(
+                format!(
+                    "insert {} nodes chunks of size {} gen parents",
+                    count, chunk_size
+                ),
+                |b| insert_bench(b, count, chunk_size, true),
+            );
+        }
+    }
+
+    // // group.bench_function("walk 100 nodes", |b| walk_bench(b, 100, 0, 0));
+    // // group.bench_function("walk 1k nodes", |b| walk_bench(b, 1000, 0, 0));
+    // // group.bench_function("walk 10k nodes", |b| walk_bench(b, 10000, 0, 0));
+    // group.bench_function("walk 100k nodes", |b| walk_bench(b, 100000, 0));
+    // group.bench_function("walk 100k chunked", |b| walk_bench(b, 100000, 5));
+    // group.bench_function("walk 1m nodes", |b| walk_bench(b, 1000000, 0));
+    // group.bench_function("walk 1m small chunked", |b| walk_bench(b, 1000000, 5));
+    // group.bench_function("walk 1m big chunked", |b| walk_bench(b, 1000000, 5000));
+    // //group.bench_function("walk 10m nodes", |b| walk_bench(b, 10000000));
+    // // group.bench_function("insert 100 nodes", |b| insert_bench(b, 100, 0, 0));
+    // // group.bench_function("insert 1k nodes", |b| insert_bench(b, 1000, 0, 0));
+    // // group.bench_function("insert 10k nodes", |b| insert_bench(b, 10000, 0, 0));
+    // group.bench_function("insert 100k nodes", |b| insert_bench(b, 100000, 0));
+    // group.bench_function("insert 100k chunked", |b| insert_bench(b, 100000, 5));
+    // group.bench_function("insert 1m nodes", |b| insert_bench(b, 1000000, 0));
+    // group.bench_function("insert 1m small chunked", |b| insert_bench(b, 1000000, 5));
+    // group.bench_function("insert 1m big chunked", |b| insert_bench(b, 1000000, 5000));
+    // //group.bench_function("insert 10m nodes", |b| insert_bench(b, 10000000));
 
     group.finish();
 }
