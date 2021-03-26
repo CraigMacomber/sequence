@@ -7,7 +7,7 @@ use crate::{
     chunk::{Chunk, ChunkIterator, ChunkOffset},
     forest::{self, ChunkId, ParentInfo},
     indirect::{BasicView, Child, NodeView},
-    nav::{Nav, ParentResolver, Resolver},
+    nav::{self, ParentResolver, Resolver},
     HasId, Label, NodeId, NodeNav,
 };
 
@@ -100,7 +100,9 @@ impl<'a> ParentResolver<NodeView<'a>> for &'a Forest {
                             }
                         };
                         Some(ParentInfo {
-                            node: NodeView::Chunk(c.lookup(chunk_id.0, id).unwrap()),
+                            node: NodeView::Chunk(
+                                c.lookup(chunk_id.0, chunk_id.0 + parent.0).unwrap(),
+                            ),
                             label: parent.1,
                         })
                     }
@@ -112,19 +114,17 @@ impl<'a> ParentResolver<NodeView<'a>> for &'a Forest {
 
 impl Forest {
     fn get_parent_from_chunk_id(&self, id: ChunkId) -> Option<ParentInfo<NodeView>> {
-        self.get_parent_chunk_from_chunk_id(id).map(|x| ParentInfo {
+        self.get_parent_data().get(&id).map(|x| ParentInfo {
             node: self.find_node(x.node.0).unwrap(),
             label: x.label,
         })
     }
-
-    fn get_parent_chunk_from_chunk_id<'a>(&'a self, id: ChunkId) -> Option<ParentInfo<ChunkId>> {
-        self.get_parent_data().get(&id).cloned()
-    }
 }
 
+pub type Nav<'a> = nav::Nav<&'a Forest, NodeView<'a>>;
+
 impl Forest {
-    pub fn nav_from(&self, id: NodeId) -> Option<Nav<&Self, NodeView>> {
+    pub fn nav_from(&self, id: NodeId) -> Option<Nav> {
         self.find_node(id).map(|view| Nav::new(self, view))
     }
 }

@@ -5,7 +5,6 @@ use crate::{
     indirect_nav::*,
 };
 use rand::Rng;
-use std::iter::FromIterator;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 pub const PER_CHUNK_ITEM: usize = 5;
@@ -197,8 +196,9 @@ pub fn walk_all<T: Node<T>>(n: T) -> usize {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
+    use crate::HasId;
+    use crate::NodeNav;
 
     #[test]
     fn basic_nodes() {
@@ -206,6 +206,33 @@ mod tests {
         let (forest, id) = big_tree(size, 0, 1000);
         let nav = forest.nav_from(id).unwrap();
         assert_eq!(walk_all(nav), size);
+    }
+
+    #[test]
+    fn parents() {
+        let size = 100;
+        let (forest, id) = big_tree(size, 0, 100);
+        let nav = forest.nav_from(id).unwrap();
+        check_parents(nav);
+    }
+
+    #[test]
+    fn parents_with_chunks() {
+        let size = 100;
+        let (forest, id) = big_tree(size, 5, 100);
+        let nav = forest.nav_from(id).unwrap();
+        check_parents(nav);
+    }
+
+    pub fn check_parents(n: Nav) {
+        for t in n.get_traits() {
+            for c in n.get_trait(t) {
+                let p = c.parent().unwrap();
+                assert!(p.label == t);
+                assert!(p.node.get_id() == n.get_id());
+                check_parents(c);
+            }
+        }
     }
 
     #[test]

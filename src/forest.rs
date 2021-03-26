@@ -28,8 +28,6 @@ pub trait Nodes: Clone {
     // }
 }
 
-// TODO: mutation APIs
-
 // Nodes added to forest must have non-overlapping ranges of Ids.
 #[derive(Clone, Default)]
 pub struct Forest<TNodes> {
@@ -39,32 +37,6 @@ pub struct Forest<TNodes> {
     old_map: RefCell<im_rc::OrdMap<ChunkId, TNodes>>,
     /// Lazily updated parent data
     parent_data: RefCell<ImHashMap<ChunkId, ParentInfo<ChunkId>>>,
-}
-
-pub struct ForestParents<TNodes> {
-    /// Snapshot from last time parent_data was updated
-    // old_map: im_rc::OrdMap<ChunkId, TNodes>,
-    map: im_rc::OrdMap<ChunkId, TNodes>,
-    /// Lazily updated parent data
-    pub parent_data: ImHashMap<ChunkId, ParentInfo<ChunkId>>,
-}
-
-impl<TNodes> Default for ForestParents<TNodes> {
-    fn default() -> Self {
-        ForestParents {
-            map: im_rc::OrdMap::default(),
-            parent_data: ImHashMap::default(),
-        }
-    }
-}
-
-impl<TNodes> Clone for ForestParents<TNodes> {
-    fn clone(&self) -> Self {
-        ForestParents {
-            map: self.map.clone(),
-            parent_data: self.parent_data.clone(),
-        }
-    }
 }
 
 #[derive(Clone)]
@@ -104,51 +76,6 @@ impl<TNodes> Forest<TNodes> {
     }
 }
 
-fn update_forest_parents<'a, TNodes>(
-    map: &'a im_rc::OrdMap<ChunkId, TNodes>,
-    old_map: &'a im_rc::OrdMap<ChunkId, TNodes>,
-    parent_data: &mut ImHashMap<ChunkId, ParentInfo<ChunkId>>,
-) where
-    TNodes: PartialEq<TNodes>,
-    &'a TNodes: NodeNav<ChunkId>,
-{
-    for d in map.diff(&old_map) {
-        match d {
-            DiffItem::Add(k, v) => {
-                for label in v.get_traits() {
-                    for child in v.get_trait(label) {
-                        parent_data.insert(child, ParentInfo { label, node: *k });
-                    }
-                }
-            }
-            DiffItem::Update { old, new } => {
-                // TODO: Performance: could support efficient diff on Nodes, and do a much more optimal update here.
-                // For now, treat like remove then insert.
-                // TODO: quality: either do above, or deduplicate this.
-                let (_k, v) = old;
-                for label in v.get_traits() {
-                    for child in v.get_trait(label) {
-                        parent_data.remove(&child);
-                    }
-                }
-                let (k, v) = new;
-                for label in v.get_traits() {
-                    for child in v.get_trait(label) {
-                        parent_data.insert(child, ParentInfo { label, node: *k });
-                    }
-                }
-            }
-            DiffItem::Remove(_k, v) => {
-                for label in v.get_traits() {
-                    for child in v.get_trait(label) {
-                        parent_data.remove(&child);
-                    }
-                }
-            }
-        }
-    }
-}
-
 impl<TNodes> Forest<TNodes>
 where
     TNodes: Clone,
@@ -169,11 +96,46 @@ where
     for<'a> &'a TNodes: NodeNav<ChunkId>,
 {
     pub fn get_parent_data(&self) -> Ref<ImHashMap<ChunkId, ParentInfo<ChunkId>>> {
-        update_forest_parents(
-            &self.map,
-            &self.old_map.borrow(),
-            &mut self.parent_data.borrow_mut(),
-        );
+        {
+            let mut parent_data = self.parent_data.borrow_mut();
+            for d in self.old_map.borrow().diff(&self.map) {
+                match d {
+                    DiffItem::Add(k, v) => {
+                        for label in v.get_traits() {
+                            for child in v.get_trait(label) {
+                                parent_data.insert(child, ParentInfo { label, node: *k });
+                            }
+                        }
+                    }
+                    DiffItem::Update { old, new } => {
+                        // TODO: Performance: could support efficient diff on Nodes, and do a much more optimal update here.
+                        // For now, treat like remove then insert.
+                        // TODO: quality: either do above, or deduplicate this.
+                        let (_k, v) = old;
+                        for label in v.get_traits() {
+                            for child in v.get_trait(label) {
+                                parent_data.remove(&child);
+                            }
+                        }
+                        let (k, v) = new;
+                        for label in v.get_traits() {
+                            for child in v.get_trait(label) {
+                                parent_data.insert(child, ParentInfo { label, node: *k });
+                            }
+                        }
+                    }
+                    DiffItem::Remove(_k, v) => {
+                        for label in v.get_traits() {
+                            for child in v.get_trait(label) {
+                                parent_data.remove(&child);
+                            }
+                        }
+                    }
+                }
+            }
+
+            self.old_map.replace(self.map.clone());
+        }
         self.parent_data.borrow()
     }
 }
