@@ -1,30 +1,27 @@
-//! Simple tree that owns generic tokens instead of its children.
+//! Simple tree that ChunkIds instead of its children.
 //! Can be used with Forest to form a Tree.
 //! Nav can combine this with a Forest to produce a Tree API with child access methods.
-//!
-//! Due to issues with recursive types, this can't be used like `basic` to own its children.
-//! If that worked it would look like:
-//! type BasicRecursive<Id> = BasicNode<Id, BasicRecursive<Id>>;
 
 use std::{iter::Cloned, slice};
 
 use crate::{
+    forest::{self, ChunkId},
     util::{ImHashMap, ImSlice},
-    Def, Label, Node, NodeNav,
+    Def, HasId, Label, Node, NodeId, NodeNav,
 };
 
 #[derive(Clone, PartialEq)]
-pub struct BasicNode<Child> {
+pub struct BasicNode {
     pub def: Def,
     // Payload is often not used, so indirect it to keep the size down.
     pub payload: Option<Box<im_rc::Vector<u8>>>,
     // TODO: use im::Vector here
-    pub traits: ImHashMap<Label, Vec<Child>>,
+    pub traits: ImHashMap<Label, Vec<ChunkId>>,
 }
 
-impl<'a, Child: Clone> NodeNav<Child> for &'a BasicNode<Child> {
-    type TTraitChildren = Cloned<slice::Iter<'a, Child>>;
-    type TLabels = Cloned<im_rc::hashmap::Keys<'a, Label, Vec<Child>>>;
+impl<'a> NodeNav<ChunkId> for &'a BasicNode {
+    type TTraitChildren = Cloned<slice::Iter<'a, ChunkId>>;
+    type TLabels = Cloned<im_rc::hashmap::Keys<'a, Label, Vec<ChunkId>>>;
 
     fn get_traits(&self) -> Self::TLabels {
         self.traits.keys().cloned()
@@ -33,12 +30,11 @@ impl<'a, Child: Clone> NodeNav<Child> for &'a BasicNode<Child> {
     fn get_trait(&self, label: Label) -> Self::TTraitChildren {
         self.traits
             .get(&label)
-            .map_or(BasicNode::<Child>::EMPTY.iter(), |x| x.iter())
-            .cloned()
+            .map_or(BasicNode::empty_trait(), |x| x.iter().cloned())
     }
 }
 
-impl<'a, Child: Clone> Node<Child> for &'a BasicNode<Child> {
+impl Node<ChunkId> for &BasicNode {
     fn get_def(&self) -> Def {
         self.def
     }
@@ -52,6 +48,56 @@ impl<'a, Child: Clone> Node<Child> for &'a BasicNode<Child> {
     }
 }
 
-impl<'a, Child> BasicNode<Child> {
-    const EMPTY: [Child; 0] = [];
+impl<'a> BasicNode {
+    const EMPTY: [ChunkId; 0] = [];
+    pub fn empty_trait() -> Cloned<slice::Iter<'a, ChunkId>> {
+        Self::EMPTY.iter().cloned()
+    }
+}
+
+/// View of a BasicNode with an Id.
+#[derive(Clone)]
+pub struct BasicView<'a> {
+    pub node: &'a BasicNode,
+    pub id: NodeId,
+}
+
+impl<'a> forest::Nodes for &'a BasicNode {
+    type View = BasicView<'a>;
+    fn get(&self, first_id: NodeId, id: NodeId) -> Option<BasicView<'a>> {
+        if first_id == id {
+            Some(BasicView { node: self, id })
+        } else {
+            None
+        }
+    }
+}
+
+impl HasId for BasicView<'_> {
+    fn get_id(&self) -> NodeId {
+        self.id
+    }
+}
+
+impl<'a> NodeNav<ChunkId> for &'a BasicView<'a> {
+    type TTraitChildren = Cloned<slice::Iter<'a, ChunkId>>;
+    type TLabels = Cloned<im_rc::hashmap::Keys<'a, Label, Vec<ChunkId>>>;
+
+    fn get_traits(&self) -> Self::TLabels {
+        self.node.get_traits()
+    }
+
+    fn get_trait(&self, label: Label) -> Self::TTraitChildren {
+        self.node.get_trait(label)
+    }
+}
+
+impl<'a> Node<ChunkId> for &'a BasicView<'a> {
+    fn get_def(&self) -> Def {
+        self.node.get_def()
+    }
+
+    fn get_payload(&self) -> Option<ImSlice> {
+        self.node.get_payload()
+    }
 }

@@ -4,6 +4,7 @@
 use std::{iter::Cloned, rc::Rc, usize};
 
 use crate::{
+    forest,
     util::{slice_with_length, ImSlice},
     Def, HasId, IdOffset, Label, Node, NodeId, NodeNav,
 };
@@ -81,7 +82,7 @@ impl RootChunkSchema {
                     )
                 }
             }
-        };
+        }
 
         add(
             &mut data_outer.as_mut_slice(),
@@ -135,9 +136,9 @@ pub struct ChunkView<'a> {
     data: ImSlice<'a>,
 }
 
-impl Chunk {
-    /// Returns None if id not present.
-    pub fn lookup(&self, first_id: NodeId, id: NodeId) -> Option<ChunkOffset<'_>> {
+impl<'a> forest::Nodes for &'a Chunk {
+    type View = ChunkOffset<'a>;
+    fn get(&self, first_id: NodeId, id: NodeId) -> Option<ChunkOffset<'a>> {
         match self.schema.lookup_schema(first_id, id) {
             Some(info) => {
                 let data = slice_with_length(

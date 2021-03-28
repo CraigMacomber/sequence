@@ -454,7 +454,7 @@ mod tests {
         println!(
             "Chunk:{} BasicNode:{} NavChunk:{}, ahash ImMap:{}, Default ImMap:{}, stdMap:{}",
             std::mem::size_of::<Chunk>(),
-            std::mem::size_of::<BasicNode<ChunkId>>(),
+            std::mem::size_of::<BasicNode>(),
             std::mem::size_of::<NavChunk>(),
             std::mem::size_of::<im_rc::HashMap<Label, Vec<ChunkId>, ahash::RandomState>>(),
             std::mem::size_of::<im_rc::HashMap<Label, Vec<ChunkId>>>(),

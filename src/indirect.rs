@@ -8,8 +8,10 @@
 //! (and dealing with the fact that a trait may contain a mix of chunks and basic nodes, and the chunks might contain multiple top level nodes)
 //! is done by [crate::indirect_nav] which wraps this node in a Node implementation up with a forest using [crate::nav::Nav].
 
+use std::rc::Rc;
+
 use crate::{
-    basic_indirect::BasicNode, chunk::ChunkOffset, forest::ChunkId, Def, HasId, Label, Node,
+    basic_indirect::BasicView, chunk::ChunkOffset, forest::ChunkId, Def, HasId, Label, Node,
     NodeId, NodeNav,
 };
 
@@ -22,15 +24,12 @@ pub enum Child<'a> {
 }
 
 pub enum TraitView<'a> {
-    Basic(<&'a BasicNode<ChunkId> as NodeNav<ChunkId>>::TTraitChildren),
+    Basic(<&'a BasicView<'a> as NodeNav<ChunkId>>::TTraitChildren),
     Chunk(<ChunkOffset<'a> as NodeNav<ChunkOffset<'a>>>::TTraitChildren),
+    Dyn(Box<dyn Iterator<Item = Child<'a>> + 'a>),
 }
 
-#[derive(Clone)]
-pub struct BasicView<'a> {
-    pub node: &'a BasicNode<ChunkId>,
-    pub id: NodeId,
-}
+pub trait DynView<'a>: Node<Child<'a>> + HasId {}
 
 #[derive(Clone)]
 pub enum NodeView<'a> {
@@ -40,17 +39,22 @@ pub enum NodeView<'a> {
     // TODO: support undownloaded subtrees that arn't chunks: find returns iterator of candidate trees using bloom filters
     // TODO: these types are write optimized. Consider supporting read/size optimized types (ex: using byte array instead of im's Vector)
     // TODO: maybe chunks referencing external subtrees (so they can have child references like payloads)
+    Dyn(DynViewFull<'a>),
 }
+
+pub type DynViewFull<'a> =
+    Rc<dyn DynView<'a, TTraitChildren = TraitView<'a>, TLabels = LabelIterator<'a>> + 'a>;
 
 impl<'a> NodeNav<Child<'a>> for NodeView<'a> {
     type TTraitChildren = TraitView<'a>;
 
-    type TLabels = TraitIterator<'a>;
+    type TLabels = LabelIterator<'a>;
 
     fn get_traits(&self) -> Self::TLabels {
         match self {
-            NodeView::Single(s) => TraitIterator::Single(s.node.get_traits()),
-            NodeView::Chunk(c) => TraitIterator::Chunk(c.get_traits()),
+            NodeView::Single(s) => LabelIterator::Single(s.node.get_traits()),
+            NodeView::Chunk(c) => LabelIterator::Chunk(c.get_traits()),
+            NodeView::Dyn(s) => s.get_traits(),
         }
     }
 
@@ -58,6 +62,7 @@ impl<'a> NodeNav<Child<'a>> for NodeView<'a> {
         match self {
             NodeView::Single(s) => TraitView::Basic(s.node.get_trait(label)),
             NodeView::Chunk(c) => TraitView::Chunk(c.get_trait(label)),
+            NodeView::Dyn(s) => s.get_trait(label),
         }
     }
 }
@@ -67,6 +72,7 @@ impl<'a> Node<Child<'a>> for NodeView<'a> {
         match self {
             NodeView::Single(s) => s.node.get_def(),
             NodeView::Chunk(c) => c.get_def(),
+            NodeView::Dyn(s) => s.get_def(),
         }
     }
 
@@ -74,15 +80,17 @@ impl<'a> Node<Child<'a>> for NodeView<'a> {
         match self {
             NodeView::Single(s) => s.node.get_payload(),
             NodeView::Chunk(c) => c.get_payload(),
+            NodeView::Dyn(s) => s.get_payload(),
         }
     }
 }
 
-impl<'a> HasId for NodeView<'a> {
+impl HasId for NodeView<'_> {
     fn get_id(&self) -> NodeId {
         match self {
             NodeView::Single(s) => s.id,
             NodeView::Chunk(c) => c.get_id(),
+            NodeView::Dyn(s) => s.get_id(),
         }
     }
 }
@@ -94,22 +102,25 @@ impl<'a> Iterator for TraitView<'a> {
         match self {
             TraitView::Basic(ref mut c) => c.next().map(|id| Child::Id(id)),
             TraitView::Chunk(ref mut c) => c.next().map(|c| Child::Chunk(c)),
+            TraitView::Dyn(ref mut c) => c.next(),
         }
     }
 }
 
-pub enum TraitIterator<'a> {
-    Single(<&'a BasicNode<ChunkId> as NodeNav<ChunkId>>::TLabels),
+pub enum LabelIterator<'a> {
+    Single(<&'a BasicView<'a> as NodeNav<ChunkId>>::TLabels),
     Chunk(<ChunkOffset<'a> as NodeNav<ChunkOffset<'a>>>::TLabels),
+    Dyn(Box<dyn Iterator<Item = Label> + 'a>),
 }
 
-impl<'a> Iterator for TraitIterator<'a> {
+impl Iterator for LabelIterator<'_> {
     type Item = Label;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            TraitIterator::Single(ref mut s) => s.next(),
-            TraitIterator::Chunk(ref mut c) => c.next(),
+            LabelIterator::Single(ref mut s) => s.next(),
+            LabelIterator::Chunk(ref mut c) => c.next(),
+            LabelIterator::Dyn(ref mut c) => c.next(),
         }
     }
 }

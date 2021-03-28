@@ -1,10 +1,12 @@
 //! Hookup the [BasicNode] to [Nav] using [Forest] as the [Resolver].
 
+use forest::Nodes;
+
 use crate::{
-    basic_indirect::BasicNode,
+    basic_indirect::{BasicNode, BasicView},
     chunk::{Chunk, ChunkIterator, ChunkOffset},
     forest::{self, ChunkId, ParentInfo},
-    indirect::{BasicView, Child, NodeView},
+    indirect::{Child, NodeView},
     nav::{self, ParentResolver, Resolver},
     HasId, Label, NodeId, NodeNav,
 };
@@ -12,7 +14,7 @@ use crate::{
 /// Tree data, stored in the forest, keyed by the first id in the chunk.
 #[derive(Clone, PartialEq)]
 pub enum NavChunk {
-    Single(BasicNode<ChunkId>),
+    Single(BasicNode),
     Chunk(Chunk),
 }
 
@@ -20,14 +22,8 @@ impl<'a> forest::Nodes for &'a NavChunk {
     type View = NodeView<'a>;
     fn get(&self, first_id: NodeId, id: NodeId) -> Option<NodeView<'a>> {
         match self {
-            NavChunk::Single(node) => {
-                if first_id == id {
-                    Some(NodeView::Single(BasicView { node, id }))
-                } else {
-                    None
-                }
-            }
-            NavChunk::Chunk(c) => c.lookup(first_id, id).map(|x| NodeView::Chunk(x)),
+            NavChunk::Single(node) => node.get(first_id, id).map(|v| NodeView::Single(v)),
+            NavChunk::Chunk(c) => c.get(first_id, id).map(|x| NodeView::Chunk(x)),
         }
     }
 }
@@ -86,9 +82,6 @@ impl<'a> ParentResolver<NodeView<'a>> for &'a Forest {
                 let id = chunk.get_id();
                 let (chunk_id, chunk) = self.find_nodes_from_node(id).unwrap();
                 match chunk {
-                    NavChunk::Single(_) => {
-                        panic!()
-                    }
                     NavChunk::Chunk(c) => {
                         let info = c.schema.lookup_schema(chunk_id.0, id).unwrap();
                         let parent = match info.parent.parent {
@@ -99,13 +92,15 @@ impl<'a> ParentResolver<NodeView<'a>> for &'a Forest {
                         };
                         Some(ParentInfo {
                             node: NodeView::Chunk(
-                                c.lookup(chunk_id.0, chunk_id.0 + parent.0).unwrap(),
+                                c.get(chunk_id.0, chunk_id.0 + parent.0).unwrap(),
                             ),
                             label: parent.1,
                         })
                     }
+                    _ => panic!(),
                 }
             }
+            NodeView::Dyn(basic) => self.get_parent_from_chunk_id(ChunkId(basic.get_id())),
         }
     }
 }
@@ -131,52 +126,36 @@ impl Forest {
 /// TODO: maybe there are other uses for this? Might be able to simplify code elsewhere.
 
 impl<'a> NodeNav<ChunkId> for &'a NavChunk {
-    type TTraitChildren = TraitView<'a>;
-    type TLabels = TraitIterator<'a>;
+    type TTraitChildren = <&'a BasicView<'a> as NodeNav<ChunkId>>::TTraitChildren;
+    type TLabels = LabelIterator<'a>;
 
     fn get_traits(&self) -> Self::TLabels {
         match self {
-            NavChunk::Single(s) => TraitIterator::Single(s.get_traits()),
-            NavChunk::Chunk(_) => TraitIterator::Empty,
+            NavChunk::Single(s) => LabelIterator::Single(s.get_traits()),
+            NavChunk::Chunk(_) => LabelIterator::Empty,
         }
     }
 
     fn get_trait(&self, label: Label) -> Self::TTraitChildren {
         match self {
-            NavChunk::Single(s) => TraitView::Basic(s.get_trait(label)),
-            NavChunk::Chunk(_) => TraitView::Empty,
+            NavChunk::Single(s) => s.get_trait(label),
+            NavChunk::Chunk(_) => BasicNode::empty_trait(),
         }
     }
 }
 
-pub enum TraitView<'a> {
-    Basic(<&'a BasicNode<ChunkId> as NodeNav<ChunkId>>::TTraitChildren),
+pub enum LabelIterator<'a> {
+    Single(<&'a BasicView<'a> as NodeNav<ChunkId>>::TLabels),
     Empty,
 }
 
-impl<'a> Iterator for TraitView<'a> {
-    type Item = ChunkId;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            TraitView::Basic(ref mut c) => c.next(),
-            TraitView::Empty => None,
-        }
-    }
-}
-
-pub enum TraitIterator<'a> {
-    Single(<&'a BasicNode<ChunkId> as NodeNav<ChunkId>>::TLabels),
-    Empty,
-}
-
-impl<'a> Iterator for TraitIterator<'a> {
+impl<'a> Iterator for LabelIterator<'a> {
     type Item = Label;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            TraitIterator::Single(ref mut s) => s.next(),
-            TraitIterator::Empty => None,
+            LabelIterator::Single(ref mut s) => s.next(),
+            LabelIterator::Empty => None,
         }
     }
 }

@@ -53,7 +53,7 @@ where
     TNode: Node<<R as Resolver<TNode>>::ChunkId>,
 {
     resolver: R,
-    view: <<TNode as NodeNav<<R as Resolver<TNode>>::ChunkId>>::TTraitChildren as IntoIterator>::IntoIter,
+    view: <TNode as NodeNav<<R as Resolver<TNode>>::ChunkId>>::TTraitChildren,
     pending: Option<<R as Resolver<TNode>>::Iter>,
 }
 

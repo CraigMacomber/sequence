@@ -77,9 +77,9 @@ impl Sub<NodeId> for NodeId {
 /// Navigation part of Node
 pub trait NodeNav<TChild> {
     /// For iterating children within a trait.
-    type TTraitChildren: IntoIterator<Item = TChild>;
+    type TTraitChildren: Iterator<Item = TChild>;
     /// For iterating the set of trait labels for non-empty traits..
-    type TLabels: IntoIterator<Item = Label>;
+    type TLabels: Iterator<Item = Label>;
 
     // TODO: Performance: walking traits could be faster if this returned a reference to the trait not just the labels (saves a map lookup)
     fn get_traits(&self) -> Self::TLabels;
