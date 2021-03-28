@@ -135,9 +135,9 @@ pub struct ChunkView<'a> {
     data: ImSlice<'a>,
 }
 
-impl<'a> Chunk {
+impl Chunk {
     /// Returns None if id not present.
-    pub fn lookup(&'a self, first_id: NodeId, id: NodeId) -> Option<ChunkOffset<'a>> {
+    pub fn lookup(&self, first_id: NodeId, id: NodeId) -> Option<ChunkOffset<'_>> {
         match self.schema.lookup_schema(first_id, id) {
             Some(info) => {
                 let data = slice_with_length(
@@ -157,9 +157,9 @@ impl<'a> Chunk {
     }
 }
 
-impl<'a> RootChunkSchema {
+impl RootChunkSchema {
     /// Returns None if id not present.
-    pub fn lookup_schema(&'a self, first_id: NodeId, id: NodeId) -> Option<OffsetInfoRef> {
+    pub fn lookup_schema(&self, first_id: NodeId, id: NodeId) -> Option<OffsetInfoRef> {
         if id < first_id {
             None
         } else if id < first_id + IdOffset(self.schema.id_stride * self.schema.node_count) {

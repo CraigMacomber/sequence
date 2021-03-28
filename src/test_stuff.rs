@@ -18,7 +18,7 @@ pub fn chunked_tree(size: usize, per_chunk: usize) -> (Forest, NodeId) {
         (chunks, chunk_size)
     };
 
-    // Make sure we have at least enough nodes to make reasonable palces to parent chunks under, and enough to really have `size` nodes.
+    // Make sure we have at least enough nodes to make reasonable palaces to parent chunks under, and enough to really have `size` nodes.
     let basic_nodes = usize::max(
         1 + chunks / 10,
         size - (chunks * PER_CHUNK_ITEM * chunk_size),
@@ -79,9 +79,7 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
                     .or_insert_with(|| vec![])
                     .push(ChunkId(id));
             }
-            NavChunk::Chunk(_) => {
-                panic!();
-            }
+            _ => panic!(),
         };
 
         nodes.push(id);
@@ -174,9 +172,7 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
                         .or_insert_with(|| vec![])
                         .push(ChunkId(id));
                 }
-                NavChunk::Chunk(_) => {
-                    panic!();
-                }
+                _ => panic!(),
             };
         }
     }
@@ -266,9 +262,7 @@ pub fn simple_tree() -> (Forest, NodeId) {
                     .or_insert_with(|| vec![])
                     .push(ChunkId(id));
             }
-            NavChunk::Chunk(_) => {
-                panic!();
-            }
+            _ => panic!(),
         };
     }
 
