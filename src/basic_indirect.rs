@@ -79,7 +79,7 @@ impl HasId for BasicView<'_> {
     }
 }
 
-impl<'a> NodeNav<ChunkId> for &'a BasicView<'a> {
+impl<'a> NodeNav<ChunkId> for BasicView<'a> {
     type TTraitChildren = Cloned<slice::Iter<'a, ChunkId>>;
     type TLabels = Cloned<im_rc::hashmap::Keys<'a, Label, Vec<ChunkId>>>;
 
@@ -92,7 +92,7 @@ impl<'a> NodeNav<ChunkId> for &'a BasicView<'a> {
     }
 }
 
-impl<'a> Node<ChunkId> for &'a BasicView<'a> {
+impl<'a> Node<ChunkId> for BasicView<'a> {
     fn get_def(&self) -> Def {
         self.node.get_def()
     }

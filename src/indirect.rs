@@ -8,11 +8,10 @@
 //! (and dealing with the fact that a trait may contain a mix of chunks and basic nodes, and the chunks might contain multiple top level nodes)
 //! is done by [crate::indirect_nav] which wraps this node in a Node implementation up with a forest using [crate::nav::Nav].
 
-use std::rc::Rc;
+use enum_dispatch::enum_dispatch;
 
 use crate::{
-    basic_indirect::BasicView, chunk::ChunkOffset, forest::ChunkId, Def, HasId, Label, Node,
-    NodeId, NodeNav,
+    basic_indirect::BasicView, chunk::ChunkOffset, forest::ChunkId, Def, Label, Node, NodeNav,
 };
 
 /// Child type for the [Node].
@@ -24,12 +23,37 @@ pub enum Child<'a> {
 }
 
 pub enum TraitView<'a> {
-    Basic(<&'a BasicView<'a> as NodeNav<ChunkId>>::TTraitChildren),
+    Basic(<BasicView<'a> as NodeNav<ChunkId>>::TTraitChildren),
     Chunk(<ChunkOffset<'a> as NodeNav<ChunkOffset<'a>>>::TTraitChildren),
 }
 
-pub trait DynView<'a>: Node<Child<'a>> + HasId {}
+#[enum_dispatch]
+pub trait DynView<'a> {
+    fn get_traits(&self) -> LabelIterator<'a>;
+    fn get_trait(&self, label: Label) -> TraitView<'a>;
+}
 
+impl<'a> DynView<'a> for BasicView<'a> {
+    fn get_traits(&self) -> LabelIterator<'a> {
+        LabelIterator::Single(<Self as NodeNav<ChunkId>>::get_traits(self))
+    }
+
+    fn get_trait(&self, label: Label) -> TraitView<'a> {
+        TraitView::Basic(<Self as NodeNav<ChunkId>>::get_trait(self, label))
+    }
+}
+
+impl<'a> DynView<'a> for ChunkOffset<'a> {
+    fn get_traits(&self) -> LabelIterator<'a> {
+        LabelIterator::Chunk(<Self as NodeNav<ChunkOffset<'a>>>::get_traits(self))
+    }
+
+    fn get_trait(&self, label: Label) -> TraitView<'a> {
+        TraitView::Chunk(<Self as NodeNav<ChunkOffset<'a>>>::get_trait(self, label))
+    }
+}
+
+#[enum_dispatch(HasId, DynView)] // NodeNav, Node, DynView
 #[derive(Clone)]
 pub enum NodeView<'a> {
     Single(BasicView<'a>),
@@ -40,26 +64,17 @@ pub enum NodeView<'a> {
     // TODO: maybe chunks referencing external subtrees (so they can have child references like payloads)
 }
 
-pub type DynViewFull<'a> =
-    Rc<dyn DynView<'a, TTraitChildren = TraitView<'a>, TLabels = LabelIterator<'a>> + 'a>;
-
 impl<'a> NodeNav<Child<'a>> for NodeView<'a> {
     type TTraitChildren = TraitView<'a>;
 
     type TLabels = LabelIterator<'a>;
 
     fn get_traits(&self) -> Self::TLabels {
-        match self {
-            NodeView::Single(s) => LabelIterator::Single(s.node.get_traits()),
-            NodeView::Chunk(c) => LabelIterator::Chunk(c.get_traits()),
-        }
+        <Self as DynView>::get_traits(&self)
     }
 
     fn get_trait(&self, label: Label) -> Self::TTraitChildren {
-        match self {
-            NodeView::Single(s) => TraitView::Basic(s.node.get_trait(label)),
-            NodeView::Chunk(c) => TraitView::Chunk(c.get_trait(label)),
-        }
+        <Self as DynView>::get_trait(&self, label)
     }
 }
 
@@ -79,15 +94,6 @@ impl<'a> Node<Child<'a>> for NodeView<'a> {
     }
 }
 
-impl HasId for NodeView<'_> {
-    fn get_id(&self) -> NodeId {
-        match self {
-            NodeView::Single(s) => s.id,
-            NodeView::Chunk(c) => c.get_id(),
-        }
-    }
-}
-
 impl<'a> Iterator for TraitView<'a> {
     type Item = Child<'a>;
 
@@ -100,7 +106,7 @@ impl<'a> Iterator for TraitView<'a> {
 }
 
 pub enum LabelIterator<'a> {
-    Single(<&'a BasicView<'a> as NodeNav<ChunkId>>::TLabels),
+    Single(<BasicView<'a> as NodeNav<ChunkId>>::TLabels),
     Chunk(<ChunkOffset<'a> as NodeNav<ChunkOffset<'a>>>::TLabels),
 }
 

@@ -116,7 +116,7 @@ impl Forest {
 /// TODO: maybe there are other uses for this? Might be able to simplify code elsewhere.
 
 impl<'a> NodeNav<ChunkId> for &'a NavChunk {
-    type TTraitChildren = <&'a BasicView<'a> as NodeNav<ChunkId>>::TTraitChildren;
+    type TTraitChildren = <BasicView<'a> as NodeNav<ChunkId>>::TTraitChildren;
     type TLabels = LabelIterator<'a>;
 
     fn get_traits(&self) -> Self::TLabels {
@@ -135,7 +135,7 @@ impl<'a> NodeNav<ChunkId> for &'a NavChunk {
 }
 
 pub enum LabelIterator<'a> {
-    Single(<&'a BasicView<'a> as NodeNav<ChunkId>>::TLabels),
+    Single(<BasicView<'a> as NodeNav<ChunkId>>::TLabels),
     Empty,
 }
 

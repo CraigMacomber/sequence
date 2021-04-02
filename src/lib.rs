@@ -28,10 +28,17 @@ or to virtualize the logical tree, and load chunks of it into the Forest.
 
 use std::ops::{Add, Sub};
 
+use basic_indirect::BasicView;
+use chunk::ChunkOffset;
+use indirect::NodeView;
+
 use util::ImSlice;
 
+extern crate enum_dispatch;
 extern crate im_rc;
 extern crate num_integer;
+
+use enum_dispatch::enum_dispatch;
 
 pub mod basic;
 pub mod basic_indirect;
@@ -75,6 +82,7 @@ impl Sub<NodeId> for NodeId {
 }
 
 /// Navigation part of Node
+#[enum_dispatch]
 pub trait NodeNav<TChild> {
     /// For iterating children within a trait.
     type TTraitChildren: Iterator<Item = TChild>;
@@ -88,6 +96,7 @@ pub trait NodeNav<TChild> {
 
 /// Tree Node.
 /// Combines navigation with data (def and payload)
+#[enum_dispatch]
 pub trait Node<TChild>: NodeNav<TChild> {
     fn get_def(&self) -> Def;
     fn get_payload(&self) -> Option<ImSlice>;
@@ -95,6 +104,7 @@ pub trait Node<TChild>: NodeNav<TChild> {
 
 /// Id for a Node.
 /// Some Nodes don't implement this because their Id can be instead be inferred from context (ex: key it is under in a map).
+#[enum_dispatch]
 pub trait HasId {
     fn get_id(&self) -> NodeId;
 }
