@@ -1,7 +1,7 @@
-//! Utilities for viewing trees of mixed [BasicNode] and [crate::chunk::Chunk].
+//! Utilities for viewing trees of mixed [crate::basic_indirect::BasicNode] and [crate::chunk::UniformChunk].
 //! where the children of the basic nodes are [ChunkId]s which correspond to either a chunk, or a BasicNode.
 //!
-//! The [Node] implemented here is abstracts this as children are which are either Nodes, or ChunkIds.
+//! The [crate::Node] implemented here is abstracts this as children are which are either Nodes, or ChunkIds.
 //! When traversing within a chunk, no indirection is involved, looking up an Id is only required when traversing a BasicNode.
 //!
 //! Abstracting away this difference
@@ -12,11 +12,11 @@ use enum_dispatch::enum_dispatch;
 
 use crate::{basic_indirect::BasicView, chunk::ChunkOffset, forest::ChunkId, Label, NodeNav};
 
-/// Child type for the [Node].
+/// Child type for the [crate::Node].
 pub enum Child<'a> {
-    /// Parent is a [BasicNode]: may resolve to either a [BasicNode] or a [crate::chunk::Chunk]
+    /// Parent is a [crate::basic_indirect::BasicNode]: may resolve to either a [crate::basic_indirect::BasicView] or a [crate::chunk::UniformChunk]
     Id(ChunkId),
-    /// A node within a [crate::chunk::Chunk]: can the the child of another node within the same chunk.
+    /// A node within a [crate::chunk::UniformChunk]: can the the child of another node within the same chunk.
     Chunk(ChunkOffset<'a>),
 }
 
