@@ -34,7 +34,7 @@ impl<'a> NodeNav<ChunkId> for &'a BasicNode {
     }
 }
 
-impl Node<ChunkId> for &BasicNode {
+impl Node for BasicNode {
     fn get_def(&self) -> Def {
         self.def
     }
@@ -92,7 +92,7 @@ impl<'a> NodeNav<ChunkId> for BasicView<'a> {
     }
 }
 
-impl<'a> Node<ChunkId> for BasicView<'a> {
+impl<'a> Node for BasicView<'a> {
     fn get_def(&self) -> Def {
         self.node.get_def()
     }

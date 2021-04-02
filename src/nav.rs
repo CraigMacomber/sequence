@@ -50,7 +50,7 @@ where
 pub struct TraitNav<R, TNode>
 where
     R: Resolver<TNode>,
-    TNode: Node<<R as Resolver<TNode>>::ChunkId>,
+    TNode: NodeNav<<R as Resolver<TNode>>::ChunkId>,
 {
     resolver: R,
     view: <TNode as NodeNav<<R as Resolver<TNode>>::ChunkId>>::TTraitChildren,
@@ -60,7 +60,7 @@ where
 impl<R, TNode> NodeNav<Nav<R, TNode>> for Nav<R, TNode>
 where
     R: Resolver<TNode>,
-    TNode: Node<<R as Resolver<TNode>>::ChunkId>,
+    TNode: NodeNav<<R as Resolver<TNode>>::ChunkId>,
 {
     type TTraitChildren = TraitNav<R, TNode>;
     type TLabels = TNode::TLabels;
@@ -78,10 +78,10 @@ where
     }
 }
 
-impl<R, TNode> Node<Nav<R, TNode>> for Nav<R, TNode>
+impl<R, TNode> Node for Nav<R, TNode>
 where
     R: Resolver<TNode>,
-    TNode: Node<<R as Resolver<TNode>>::ChunkId>,
+    TNode: Node,
 {
     fn get_def(&self) -> Def {
         self.view.get_def()
@@ -95,7 +95,7 @@ where
 impl<R, TNode> Iterator for TraitNav<R, TNode>
 where
     R: Resolver<TNode>,
-    TNode: Node<<R as Resolver<TNode>>::ChunkId>,
+    TNode: NodeNav<<R as Resolver<TNode>>::ChunkId>,
 {
     type Item = Nav<R, TNode>;
 

@@ -10,9 +10,7 @@
 
 use enum_dispatch::enum_dispatch;
 
-use crate::{
-    basic_indirect::BasicView, chunk::ChunkOffset, forest::ChunkId, Def, Label, Node, NodeNav,
-};
+use crate::{basic_indirect::BasicView, chunk::ChunkOffset, forest::ChunkId, Label, NodeNav};
 
 /// Child type for the [Node].
 pub enum Child<'a> {
@@ -53,7 +51,7 @@ impl<'a> DynView<'a> for ChunkOffset<'a> {
     }
 }
 
-#[enum_dispatch(HasId, DynView)] // NodeNav, Node, DynView
+#[enum_dispatch(HasId, DynView, Node)] // NodeNav
 #[derive(Clone)]
 pub enum NodeView<'a> {
     Single(BasicView<'a>),
@@ -75,22 +73,6 @@ impl<'a> NodeNav<Child<'a>> for NodeView<'a> {
 
     fn get_trait(&self, label: Label) -> Self::TTraitChildren {
         <Self as DynView>::get_trait(&self, label)
-    }
-}
-
-impl<'a> Node<Child<'a>> for NodeView<'a> {
-    fn get_def(&self) -> Def {
-        match self {
-            NodeView::Single(s) => s.node.get_def(),
-            NodeView::Chunk(c) => c.get_def(),
-        }
-    }
-
-    fn get_payload(&self) -> Option<crate::util::ImSlice> {
-        match self {
-            NodeView::Single(s) => s.node.get_payload(),
-            NodeView::Chunk(c) => c.get_payload(),
-        }
     }
 }
 

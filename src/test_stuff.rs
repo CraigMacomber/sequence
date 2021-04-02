@@ -269,7 +269,7 @@ pub fn simple_tree() -> (Forest, NodeId) {
     (forest, root_id)
 }
 
-pub fn walk_all<T: Node<T>>(n: T) -> usize {
+pub fn walk_all<T: Node + NodeNav<T>>(n: T) -> usize {
     let mut count = 1;
     for t in n.get_traits() {
         for c in n.get_trait(t) {

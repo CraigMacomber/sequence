@@ -97,7 +97,7 @@ pub trait NodeNav<TChild> {
 /// Tree Node.
 /// Combines navigation with data (def and payload)
 #[enum_dispatch]
-pub trait Node<TChild>: NodeNav<TChild> {
+pub trait Node {
     fn get_def(&self) -> Def;
     fn get_payload(&self) -> Option<ImSlice>;
 }

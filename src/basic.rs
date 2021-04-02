@@ -32,7 +32,7 @@ impl<'a> NodeNav<&'a BasicNode> for &'a BasicNode {
     }
 }
 
-impl<'a> Node<&'a BasicNode> for &'a BasicNode {
+impl<'a> Node for BasicNode {
     fn get_def(&self) -> Def {
         self.def
     }

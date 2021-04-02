@@ -247,7 +247,7 @@ impl<'a> NodeNav<ChunkOffset<'a>> for ChunkOffset<'a> {
 }
 
 // Views first item as chunk in as node
-impl<'a> Node<ChunkOffset<'a>> for ChunkOffset<'a> {
+impl<'a> Node for ChunkOffset<'a> {
     fn get_def(&self) -> Def {
         self.view.schema.def
     }
