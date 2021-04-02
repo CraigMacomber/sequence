@@ -10,12 +10,12 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub struct Chunk {
+pub struct UniformChunk {
     pub data: Box<im_rc::Vector<u8>>,
     pub schema: Rc<RootChunkSchema>,
 }
 
-impl PartialEq for Chunk {
+impl PartialEq for UniformChunk {
     fn eq(&self, other: &Self) -> bool {
         Rc::ptr_eq(&self.schema, &other.schema) & self.data.eq(&other.data)
     }
@@ -136,7 +136,7 @@ pub struct ChunkView<'a> {
     data: ImSlice<'a>,
 }
 
-impl<'a> forest::Nodes for &'a Chunk {
+impl<'a> forest::Chunk for &'a UniformChunk {
     type View = ChunkOffset<'a>;
     fn get(&self, first_id: NodeId, id: NodeId) -> Option<ChunkOffset<'a>> {
         match self.schema.lookup_schema(first_id, id) {
@@ -192,7 +192,7 @@ pub struct ChunkOffset<'a> {
     pub offset: u32, // index of current node in ChunkView
 }
 
-impl Chunk {
+impl UniformChunk {
     pub fn get_count(&self) -> usize {
         self.schema.schema.node_count as usize
     }

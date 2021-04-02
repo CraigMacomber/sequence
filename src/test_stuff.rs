@@ -1,6 +1,6 @@
 use crate::{basic_indirect::BasicNode, Def, IdOffset, Label, Node, NodeId, NodeNav};
 use crate::{
-    chunk::{Chunk, ChunkSchema, OffsetSchema, RootChunkSchema},
+    chunk::{ChunkSchema, OffsetSchema, RootChunkSchema, UniformChunk},
     forest::ChunkId,
     indirect_nav::*,
 };
@@ -153,7 +153,7 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
             debug_assert_eq!(data.len(), chunk_size * 4);
             forest.insert(
                 ChunkId(id),
-                NavChunk::Chunk(Chunk {
+                NavChunk::Chunk(UniformChunk {
                     schema: chunk_schema.clone(),
                     data: data.into(),
                 }),
@@ -243,7 +243,7 @@ pub fn simple_tree() -> (Forest, NodeId) {
             .collect();
         forest.insert(
             ChunkId(id),
-            NavChunk::Chunk(Chunk {
+            NavChunk::Chunk(UniformChunk {
                 schema: chunk_schema.clone(),
                 data: data.into(),
             }),
@@ -396,7 +396,7 @@ mod tests {
         let data: im_rc::Vector<u8> = [1u8, 2, 3, 4].iter().cloned().collect();
         forest.insert(
             ChunkId(id),
-            NavChunk::Chunk(Chunk {
+            NavChunk::Chunk(UniformChunk {
                 schema: chunk_schema.clone(),
                 data: data.into(),
             }),
@@ -453,7 +453,7 @@ mod tests {
     fn print_sizes() {
         println!(
             "Chunk:{} BasicNode:{} NavChunk:{}, ahash ImMap:{}, Default ImMap:{}, stdMap:{}",
-            std::mem::size_of::<Chunk>(),
+            std::mem::size_of::<UniformChunk>(),
             std::mem::size_of::<BasicNode>(),
             std::mem::size_of::<NavChunk>(),
             std::mem::size_of::<im_rc::HashMap<Label, Vec<ChunkId>, ahash::RandomState>>(),

@@ -26,7 +26,6 @@ pub enum Child<'a> {
 pub enum TraitView<'a> {
     Basic(<&'a BasicView<'a> as NodeNav<ChunkId>>::TTraitChildren),
     Chunk(<ChunkOffset<'a> as NodeNav<ChunkOffset<'a>>>::TTraitChildren),
-    Dyn(Box<dyn Iterator<Item = Child<'a>> + 'a>),
 }
 
 pub trait DynView<'a>: Node<Child<'a>> + HasId {}
@@ -39,7 +38,6 @@ pub enum NodeView<'a> {
     // TODO: support undownloaded subtrees that arn't chunks: find returns iterator of candidate trees using bloom filters
     // TODO: these types are write optimized. Consider supporting read/size optimized types (ex: using byte array instead of im's Vector)
     // TODO: maybe chunks referencing external subtrees (so they can have child references like payloads)
-    Dyn(DynViewFull<'a>),
 }
 
 pub type DynViewFull<'a> =
@@ -54,7 +52,6 @@ impl<'a> NodeNav<Child<'a>> for NodeView<'a> {
         match self {
             NodeView::Single(s) => LabelIterator::Single(s.node.get_traits()),
             NodeView::Chunk(c) => LabelIterator::Chunk(c.get_traits()),
-            NodeView::Dyn(s) => s.get_traits(),
         }
     }
 
@@ -62,7 +59,6 @@ impl<'a> NodeNav<Child<'a>> for NodeView<'a> {
         match self {
             NodeView::Single(s) => TraitView::Basic(s.node.get_trait(label)),
             NodeView::Chunk(c) => TraitView::Chunk(c.get_trait(label)),
-            NodeView::Dyn(s) => s.get_trait(label),
         }
     }
 }
@@ -72,7 +68,6 @@ impl<'a> Node<Child<'a>> for NodeView<'a> {
         match self {
             NodeView::Single(s) => s.node.get_def(),
             NodeView::Chunk(c) => c.get_def(),
-            NodeView::Dyn(s) => s.get_def(),
         }
     }
 
@@ -80,7 +75,6 @@ impl<'a> Node<Child<'a>> for NodeView<'a> {
         match self {
             NodeView::Single(s) => s.node.get_payload(),
             NodeView::Chunk(c) => c.get_payload(),
-            NodeView::Dyn(s) => s.get_payload(),
         }
     }
 }
@@ -90,7 +84,6 @@ impl HasId for NodeView<'_> {
         match self {
             NodeView::Single(s) => s.id,
             NodeView::Chunk(c) => c.get_id(),
-            NodeView::Dyn(s) => s.get_id(),
         }
     }
 }
@@ -102,7 +95,6 @@ impl<'a> Iterator for TraitView<'a> {
         match self {
             TraitView::Basic(ref mut c) => c.next().map(|id| Child::Id(id)),
             TraitView::Chunk(ref mut c) => c.next().map(|c| Child::Chunk(c)),
-            TraitView::Dyn(ref mut c) => c.next(),
         }
     }
 }
@@ -110,7 +102,6 @@ impl<'a> Iterator for TraitView<'a> {
 pub enum LabelIterator<'a> {
     Single(<&'a BasicView<'a> as NodeNav<ChunkId>>::TLabels),
     Chunk(<ChunkOffset<'a> as NodeNav<ChunkOffset<'a>>>::TLabels),
-    Dyn(Box<dyn Iterator<Item = Label> + 'a>),
 }
 
 impl Iterator for LabelIterator<'_> {
@@ -120,7 +111,6 @@ impl Iterator for LabelIterator<'_> {
         match self {
             LabelIterator::Single(ref mut s) => s.next(),
             LabelIterator::Chunk(ref mut c) => c.next(),
-            LabelIterator::Dyn(ref mut c) => c.next(),
         }
     }
 }

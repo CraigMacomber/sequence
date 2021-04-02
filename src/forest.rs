@@ -13,7 +13,7 @@ use im_rc::ordmap::DiffItem;
 #[derive(Ord, PartialOrd, Eq, PartialEq, Clone, Copy, Hash)]
 pub struct ChunkId(pub NodeId);
 
-pub trait Nodes: Clone {
+pub trait Chunk {
     type View;
 
     /// A chunk is allowed to be sparse within its range,
@@ -34,6 +34,10 @@ pub trait Nodes: Clone {
     // }
 }
 
+pub trait Nodes: Chunk + Clone + PartialEq {}
+
+impl<'a, T: Chunk + Clone + PartialEq> Nodes for T {}
+
 // Nodes added to forest must have non-overlapping ranges of Ids.
 #[derive(Clone, Default)]
 pub struct Forest<TNodes> {
@@ -49,18 +53,6 @@ pub struct Forest<TNodes> {
 pub struct ParentInfo<TNode> {
     pub node: TNode,
     pub label: Label,
-}
-
-impl<TNodes> Forest<TNodes>
-where
-    for<'a> &'a TNodes: Nodes,
-{
-    pub fn find_node(&self, id: NodeId) -> Option<<&TNodes as Nodes>::View> {
-        match self.map.get_prev(&ChunkId(id)) {
-            Some((chunk, v)) => v.get(chunk.0, id),
-            None => None,
-        }
-    }
 }
 
 impl<TNodes> Forest<TNodes> {
@@ -98,8 +90,20 @@ where
 
 impl<TNodes> Forest<TNodes>
 where
+    for<'a> &'a TNodes: Nodes,
+{
+    pub fn find_node(&self, id: NodeId) -> Option<<&TNodes as Chunk>::View> {
+        match self.map.get_prev(&ChunkId(id)) {
+            Some((chunk, v)) => v.get(chunk.0, id),
+            None => None,
+        }
+    }
+}
+
+impl<TNodes> Forest<TNodes>
+where
     TNodes: PartialEq<TNodes>,
-    for<'a> &'a TNodes: NodeNav<ChunkId>,
+    for<'a> &'a TNodes: NodeNav<ChunkId> + Nodes,
 {
     pub fn get_parent_data(&self) -> Ref<ImHashMap<ChunkId, ParentInfo<ChunkId>>> {
         {
@@ -143,5 +147,15 @@ where
             self.old_map.replace(self.map.clone());
         }
         self.parent_data.borrow()
+    }
+
+    pub fn get_parent_from_chunk_id(
+        &self,
+        id: ChunkId,
+    ) -> Option<ParentInfo<<&TNodes as Chunk>::View>> {
+        self.get_parent_data().get(&id).map(|x| ParentInfo {
+            node: self.find_node(x.node.0).unwrap(),
+            label: x.label,
+        })
     }
 }

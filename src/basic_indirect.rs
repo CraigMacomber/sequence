@@ -62,7 +62,7 @@ pub struct BasicView<'a> {
     pub id: NodeId,
 }
 
-impl<'a> forest::Nodes for &'a BasicNode {
+impl<'a> forest::Chunk for &'a BasicNode {
     type View = BasicView<'a>;
     fn get(&self, first_id: NodeId, id: NodeId) -> Option<BasicView<'a>> {
         if first_id == id {

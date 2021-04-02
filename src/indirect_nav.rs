@@ -1,10 +1,10 @@
 //! Hookup the [BasicNode] to [Nav] using [Forest] as the [Resolver].
 
-use forest::Nodes;
+use forest::Chunk;
 
 use crate::{
     basic_indirect::{BasicNode, BasicView},
-    chunk::{Chunk, ChunkIterator, ChunkOffset},
+    chunk::{ChunkIterator, ChunkOffset, UniformChunk},
     forest::{self, ChunkId, ParentInfo},
     indirect::{Child, NodeView},
     nav::{self, ParentResolver, Resolver},
@@ -15,10 +15,10 @@ use crate::{
 #[derive(Clone, PartialEq)]
 pub enum NavChunk {
     Single(BasicNode),
-    Chunk(Chunk),
+    Chunk(UniformChunk),
 }
 
-impl<'a> forest::Nodes for &'a NavChunk {
+impl<'a> forest::Chunk for &'a NavChunk {
     type View = NodeView<'a>;
     fn get(&self, first_id: NodeId, id: NodeId) -> Option<NodeView<'a>> {
         match self {
@@ -100,17 +100,7 @@ impl<'a> ParentResolver<NodeView<'a>> for &'a Forest {
                     _ => panic!(),
                 }
             }
-            NodeView::Dyn(basic) => self.get_parent_from_chunk_id(ChunkId(basic.get_id())),
         }
-    }
-}
-
-impl Forest {
-    fn get_parent_from_chunk_id(&self, id: ChunkId) -> Option<ParentInfo<NodeView>> {
-        self.get_parent_data().get(&id).map(|x| ParentInfo {
-            node: self.find_node(x.node.0).unwrap(),
-            label: x.label,
-        })
     }
 }
 
@@ -180,6 +170,6 @@ mod tests {
         let _n = forest.find_node(NodeId(5)).unwrap();
         let _nav = forest.nav_from(NodeId(5)).unwrap();
         let n = forest.find_nodes(ChunkId(NodeId(5))).unwrap();
-        let _n = forest::Nodes::get(&n, NodeId(5), NodeId(5)).unwrap();
+        let _n = forest::Chunk::get(&n, NodeId(5), NodeId(5)).unwrap();
     }
 }
