@@ -34,6 +34,7 @@ use indirect::NodeView;
 
 use util::ImSlice;
 
+extern crate derive_more;
 extern crate enum_dispatch;
 extern crate im_rc;
 extern crate num_integer;
