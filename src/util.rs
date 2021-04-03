@@ -2,11 +2,11 @@ use im_rc::vector::Focus;
 
 pub type ImSlice<'a> = im_rc::vector::Focus<'a, u8>;
 
-pub fn slice_with_length<'a>(
-    focus: im_rc::vector::Focus<'a, u8>,
+pub fn slice_with_length(
+    focus: im_rc::vector::Focus<'_, u8>,
     offset: usize,
     length: usize,
-) -> Focus<'a, u8> {
+) -> Focus<'_, u8> {
     focus.narrow(offset..offset + length)
 }
 

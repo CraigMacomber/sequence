@@ -40,17 +40,16 @@ impl Node for BasicNode {
     }
 
     fn get_payload(&self) -> Option<ImSlice> {
-        let o = &self.payload;
-        match o {
+        match &self.payload {
             Some(p) => Some(p.focus()),
             None => None,
         }
     }
 }
 
-impl<'a> BasicNode {
+impl BasicNode {
     const EMPTY: [ChunkId; 0] = [];
-    pub fn empty_trait() -> Cloned<slice::Iter<'a, ChunkId>> {
+    pub fn empty_trait() -> Cloned<slice::Iter<'static, ChunkId>> {
         Self::EMPTY.iter().cloned()
     }
 }
@@ -92,7 +91,7 @@ impl<'a> NodeNav<ChunkId> for BasicView<'a> {
     }
 }
 
-impl<'a> Node for BasicView<'a> {
+impl Node for BasicView<'_> {
     fn get_def(&self) -> Def {
         self.node.get_def()
     }

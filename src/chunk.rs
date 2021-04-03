@@ -264,7 +264,7 @@ impl<'a> Node for ChunkOffset<'a> {
 }
 
 // Views first item as chunk in as node
-impl<'a> HasId for ChunkOffset<'a> {
+impl HasId for ChunkOffset<'_> {
     fn get_id(&self) -> NodeId {
         self.view.first_id + IdOffset(self.offset * self.view.schema.id_stride)
     }
