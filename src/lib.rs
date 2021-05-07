@@ -28,8 +28,6 @@ or to virtualize the logical tree, and load chunks of it into the Forest.
 
 use std::ops::{Add, Sub};
 
-use basic_indirect::BasicView;
-use chunk::ChunkOffset;
 use indirect::NodeView;
 
 use util::ImSlice;

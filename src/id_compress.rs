@@ -68,12 +68,10 @@ where
     fn shorten(&mut self, id: Long) -> Short {
         let map = &mut self.map;
         let vec = &mut self.vec;
-        map.entry(id)
-            .or_insert_with(|| {
-                vec.push(id);
-                TypedNumber::from_number(vec.len() - 1)
-            })
-            .clone()
+        *map.entry(id).or_insert_with(|| {
+            vec.push(id);
+            TypedNumber::from_number(vec.len() - 1)
+        })
     }
 
     fn full(&self, id: Short) -> Long {

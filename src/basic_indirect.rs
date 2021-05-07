@@ -40,10 +40,7 @@ impl Node for BasicNode {
     }
 
     fn get_payload(&self) -> Option<ImSlice> {
-        match &self.payload {
-            Some(p) => Some(p.focus()),
-            None => None,
-        }
+        self.payload.as_ref().map(|p| p.focus())
     }
 }
 

@@ -25,10 +25,7 @@ impl<'a> NodeNav<&'a BasicNode> for &'a BasicNode {
     }
 
     fn get_trait(&self, label: Label) -> Self::TTraitChildren {
-        self.traits
-            .get(&label)
-            .map_or(EMPTY, |x| &x[..])
-            .into_iter()
+        self.traits.get(&label).map_or(EMPTY, |x| &x[..]).iter()
     }
 }
 

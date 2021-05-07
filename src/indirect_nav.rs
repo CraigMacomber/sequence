@@ -22,8 +22,8 @@ impl<'a> forest::Chunk for &'a NavChunk {
     type View = NodeView<'a>;
     fn get(&self, first_id: NodeId, id: NodeId) -> Option<NodeView<'a>> {
         match self {
-            NavChunk::Single(node) => node.get(first_id, id).map(|v| NodeView::Single(v)),
-            NavChunk::Chunk(c) => c.get(first_id, id).map(|x| NodeView::Chunk(x)),
+            NavChunk::Single(node) => node.get(first_id, id).map(NodeView::Single),
+            NavChunk::Chunk(c) => c.get(first_id, id).map(NodeView::Chunk),
         }
     }
 }
@@ -40,7 +40,7 @@ impl<'a> Iterator for Expander<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Expander::Chunk(ref mut c) => c.next().map(|chunk| NodeView::Chunk(chunk)),
+            Expander::Chunk(ref mut c) => c.next().map(NodeView::Chunk),
             Expander::Single(ref mut c) => {
                 let result = c.clone();
                 *self = Expander::Empty;

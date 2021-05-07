@@ -71,7 +71,7 @@ where
 
     fn get_trait(&self, label: Label) -> Self::TTraitChildren {
         TraitNav {
-            view: self.view.get_trait(label).into_iter(),
+            view: self.view.get_trait(label),
             resolver: self.resolver,
             pending: None,
         }
@@ -100,8 +100,8 @@ where
     type Item = Nav<R, TNode>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.pending {
-            Some(ref mut chunks) => match chunks.next() {
+        if let Some(ref mut chunks) = self.pending {
+            match chunks.next() {
                 Some(chunk) => {
                     return Some(Nav {
                         resolver: self.resolver,
@@ -109,8 +109,7 @@ where
                     });
                 }
                 None => self.pending = None,
-            },
-            None => {}
+            }
         }
 
         match self.view.next() {
@@ -118,12 +117,12 @@ where
                 let mut iter = self.resolver.expand(id);
                 let result = iter.next().unwrap(); // Chunk must not be empty
                 self.pending = Some(iter);
-                return Some(Nav {
+                Some(Nav {
                     view: result,
                     resolver: self.resolver,
-                });
+                })
             }
-            None => return None,
+            None => None,
         }
     }
 }

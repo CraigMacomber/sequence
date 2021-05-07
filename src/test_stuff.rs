@@ -76,7 +76,7 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
                 basic
                     .traits
                     .entry(label)
-                    .or_insert_with(|| vec![])
+                    .or_insert_with(Vec::new)
                     .push(ChunkId(id));
             }
             _ => panic!(),
@@ -133,7 +133,7 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
                     OffsetSchema {
                         id_offset: IdOffset(4),
                         byte_offset: 3,
-                        schema: sub_schema.clone(),
+                        schema: sub_schema,
                     },
                 ),
             ]
@@ -169,7 +169,7 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
                     basic
                         .traits
                         .entry(label)
-                        .or_insert_with(|| vec![])
+                        .or_insert_with(Vec::new)
                         .push(ChunkId(id));
                 }
                 _ => panic!(),
@@ -225,7 +225,7 @@ pub fn simple_tree() -> (Forest, NodeId) {
             OffsetSchema {
                 id_offset: IdOffset(1),
                 byte_offset: 0,
-                schema: sub_schema.clone(),
+                schema: sub_schema,
             },
         )]
         .into_iter()
@@ -259,7 +259,7 @@ pub fn simple_tree() -> (Forest, NodeId) {
                 basic
                     .traits
                     .entry(label)
-                    .or_insert_with(|| vec![])
+                    .or_insert_with(Vec::new)
                     .push(ChunkId(id));
             }
             _ => panic!(),
