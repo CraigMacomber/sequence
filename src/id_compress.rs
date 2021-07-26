@@ -5,9 +5,9 @@
 //!
 //! This is currently unused, and is just a experiment/example.
 
-use std::{collections::HashMap, ops::RangeInclusive};
+use std::{collections::HashMap, marker::PhantomData, ops::RangeInclusive};
 
-trait IdCompressor<Long, Short> {
+pub trait IdCompressor<Long, Short> {
     fn shorten(&mut self, id: Long) -> Short;
     fn full(&self, id: Short) -> Long;
 }
@@ -57,7 +57,7 @@ impl TypedNumber for u32 {
 
 pub struct Table<Long, Short> {
     vec: Vec<Long>,
-    map: HashMap<Long, Short, ahash::RandomState>,
+    map: HashMap<Long, Short, ahash::RandomState>, // TODO: maybe use ahash::RandomState?
 }
 
 impl<Long, Short> IdCompressor<Long, Short> for Table<Long, Short>
@@ -79,6 +79,15 @@ where
     }
 }
 
+impl<Long, Short> Table<Long, Short> {
+    pub fn new() -> Self {
+        Self {
+            vec: vec![],
+            map: HashMap::with_hasher(ahash::RandomState::new()),
+        }
+    }
+}
+
 /// Id Compressor optimized for numerically clustered ids.
 /// Uses Table to shorten all but the low `SHIFT` bits, which are unchanged.
 ///
@@ -87,14 +96,15 @@ where
 ///
 /// In general this does NOT guarantee that runs of sequential of Long ids get sequential short ids.
 /// See reserve_range if sequential ids are required.
-pub struct RangeTable {
+pub struct RangeTable<Long, Short> {
     table: Table<u128, usize>,
+    phantom: PhantomData<(Long, Short)>,
 }
 
 const SHIFT: usize = 10;
 const MASK_LOW: usize = (1 << SHIFT) - 1;
 
-impl<Long, Short> IdCompressor<Long, Short> for RangeTable
+impl<Long, Short> IdCompressor<Long, Short> for RangeTable<Long, Short>
 where
     Short: TypedNumber<N = usize> + Copy,
     Long: Copy + Eq + std::hash::Hash + TypedNumber<N = u128>,
@@ -113,7 +123,13 @@ where
     }
 }
 
-impl RangeTable {
+impl<Long, Short> RangeTable<Long, Short> {
+    pub fn new() -> Self {
+        Self {
+            table: Table::new(),
+            phantom: PhantomData,
+        }
+    }
     /// For a range of Long Id_s which must either:
     /// Have never been seen before by this IdCompressor
     /// OR
@@ -122,7 +138,7 @@ impl RangeTable {
     /// After calling this, the normal `shorten` and `full` functions can be used with these ids.
     ///
     /// Performance: Ranges are effectively rounded up and down to multiples of 2^SHIFT, so consider allocating ids accordingly.
-    pub fn reserve_range<Long, Short>(&mut self, ids: RangeInclusive<Long>) -> RangeInclusive<Short>
+    pub fn reserve_range(&mut self, ids: RangeInclusive<Long>) -> RangeInclusive<Short>
     where
         Short: TypedNumber<N = usize> + Copy,
         Long: Copy + Eq + std::hash::Hash + TypedNumber<N = u128>,
