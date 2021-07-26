@@ -107,3 +107,74 @@ pub trait Node {
 pub trait HasId {
     fn get_id(&self) -> NodeId;
 }
+
+use id_compress::IdCompressor;
+use std::cell::RefCell;
+use wasm_bindgen::prelude::*;
+
+// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global allocator.
+#[cfg(feature = "wee_alloc")]
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
+#[wasm_bindgen]
+extern "C" {
+    fn alert(s: &str);
+}
+
+#[wasm_bindgen]
+pub fn setup() {
+    #[cfg(debug_assertions)]
+    {
+        set_panic_hook();
+    }
+    unsafe {
+        alert("Hello, wasm-test!");
+    }
+}
+
+thread_local! {
+    static TABLE: RefCell<id_compress::RangeTable<u128, usize>> = RefCell::new(id_compress::RangeTable::new());
+}
+
+struct FullId(u128);
+typed_number_for_struct!(FullId, u128);
+
+struct ShortId(usize);
+typed_number_for_struct!(ShortId, usize);
+
+#[wasm_bindgen]
+pub fn shorten(base: &[u8]) -> usize {
+    // This pulls in Result and Error, totaling ~10 kb.
+    // let array = base.try_into().unwrap();
+    // Avoid result and error by manually doing conversion:
+    let array = [
+        base[0], base[1], base[2], base[3], base[4], base[5], base[6], base[7], base[8], base[9],
+        base[10], base[11], base[12], base[13], base[14], base[15],
+    ];
+    let base_id = u128::from_be_bytes(array);
+    let short = TABLE.with::<_, usize>(|x| x.borrow_mut().shorten(base_id));
+    return short;
+}
+
+#[wasm_bindgen]
+pub fn reserve(base: usize, count: usize) -> usize {
+    let short = TABLE.with::<_, usize>(|x| {
+        let mut r = x.borrow_mut();
+        let start = r.full(base);
+        r.reserve_range(start..=(start + (count as u128)));
+        base + 1
+    });
+    return short;
+}
+
+pub fn set_panic_hook() {
+    // When the `console_error_panic_hook` feature is enabled, we can call the
+    // `set_panic_hook` function at least once during initialization, and then
+    // we will get better error messages if our code ever panics.
+    //
+    // For more details see
+    // https://github.com/rustwasm/console_error_panic_hook#readme
+    #[cfg(feature = "console_error_panic_hook")]
+    console_error_panic_hook::set_once();
+}
