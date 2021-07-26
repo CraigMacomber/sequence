@@ -19,41 +19,42 @@ pub trait TypedNumber {
     fn from_number(n: Self::N) -> Self;
 }
 
-impl TypedNumber for u128 {
-    type N = Self;
+#[macro_export]
+macro_rules! typed_number_for_struct {
+    ( $t:ty, $n:ty ) => {
+        impl $crate::id_compress::TypedNumber for $t {
+            type N = $n;
 
-    fn as_number(&self) -> Self::N {
-        *self
-    }
+            fn as_number(&self) -> Self::N {
+                self.0
+            }
 
-    fn from_number(n: Self::N) -> Self {
-        n
-    }
+            fn from_number(n: Self::N) -> Self {
+                Self(n)
+            }
+        }
+    };
 }
 
-impl TypedNumber for usize {
-    type N = Self;
+macro_rules! typed_number_for_number {
+    ( $t:ty ) => {
+        impl $crate::id_compress::TypedNumber for $t {
+            type N = $t;
 
-    fn as_number(&self) -> Self::N {
-        *self
-    }
+            fn as_number(&self) -> Self::N {
+                *self
+            }
 
-    fn from_number(n: Self::N) -> Self {
-        n
-    }
+            fn from_number(n: Self::N) -> Self {
+                n
+            }
+        }
+    };
 }
 
-impl TypedNumber for u32 {
-    type N = Self;
-
-    fn as_number(&self) -> Self::N {
-        *self
-    }
-
-    fn from_number(n: Self::N) -> Self {
-        n
-    }
-}
+typed_number_for_number!(u128);
+typed_number_for_number!(usize);
+typed_number_for_number!(u32);
 
 pub struct Table<Long, Short> {
     vec: Vec<Long>,
