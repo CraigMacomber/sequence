@@ -10,7 +10,7 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = [ "console_error_panic_hook", "wee_alloc"] #"console_error_panic_hook"
+default = [ "console_error_panic_hook" ] #, "wee_alloc"] #"console_error_panic_hook"
 
 [dependencies]
 im-rc = "15.0.0"
@@ -20,6 +20,7 @@ ahash = "0.7.4"
 enum_dispatch = "0.3.7"
 derive_more = "0.99.16"
 wasm-bindgen = "0.2.74"
+uuid = { version = "0.8.2", features = ["wasm-bindgen", "v4"] }
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
@@ -49,5 +50,11 @@ opt-level = 3
 
 [profile.release]
 # Optimize for small code size.
-opt-level = "s"
+opt-level = 3
 panic = "abort"
+lto = true
+
+
+# https://www.reddit.com/r/rust/comments/kjcrxu/is_rust_code_compiled_into_webassembly_just_that/
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O4", "--enable-mutable-globals"]
