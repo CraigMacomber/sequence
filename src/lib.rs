@@ -189,16 +189,16 @@ impl UuidShortener {
 
     #[wasm_bindgen]
     pub fn reserve_random1000(&mut self) {
-        for n in 0..1000 {
-            let start = uuid::Uuid::new_v4().as_u128();
+        for _n in 0..1000 {
+            let _start = uuid::Uuid::new_v4().as_u128();
         }
     }
 }
 
 #[wasm_bindgen]
 pub fn reserve_random1000() {
-    for n in 0..1000 {
-        let start = uuid::Uuid::new_v4().as_u128();
+    for _n in 0..1000 {
+        let _start = uuid::Uuid::new_v4().as_u128();
     }
 }
 
