@@ -1,13 +1,13 @@
 use criterion::{
     black_box, criterion_group, criterion_main, measurement::WallTime, Bencher, Criterion,
 };
-use rand::Rng;
-use sequence::{
+use forest::{
     basic,
     forest::ChunkId,
     test_stuff::{chunked_tree, walk_all, walk_direct_all},
     Def, Label, NodeId,
 };
+use rand::Rng;
 
 use std::{cell::RefCell, rc::Rc};
 
