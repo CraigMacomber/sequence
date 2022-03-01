@@ -122,3 +122,9 @@ Id compression and chunking are different subsets of extract then compress subse
 Chunks can be modified (ex: individual payloads changed) somewhat efficiently. Doing invalidation could be done with a diff on the data, and a byte -> id lookup.
 Efficiently tracking observation of chunks is also an interesting problem. Maybe use an observations schema to prune diff? (hand over both snapshots when generating inval: use observation data to restrict compare to observed subset).
 im_vec does not really what we want for chunk backing data (some sort of im_array would make more sense)
+
+## Wasm
+
+To build:
+
+`wasm-pack build experimental-wasm`

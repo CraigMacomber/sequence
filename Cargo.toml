@@ -2,5 +2,17 @@
 
 members = [
     "forest",
-    "expirmental-wasm",
+    "experimental-wasm",
 ]
+
+[profile.bench]
+opt-level = 3
+# lto = true
+# panic = "abort"
+# debug = true
+
+[profile.release]
+# Optimize for small code size.
+opt-level = 3
+panic = "abort"
+lto = true

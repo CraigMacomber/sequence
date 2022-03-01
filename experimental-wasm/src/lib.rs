@@ -1,75 +1,9 @@
-use std::{
-    collections::HashMap,
-    ops::{Add, Sub},
-};
+use std::collections::HashMap;
 
-extern crate derive_more;
-extern crate enum_dispatch;
 extern crate forest;
-extern crate im_rc;
-extern crate num_integer;
 extern crate uuid;
 
-use enum_dispatch::enum_dispatch;
-
 pub mod id_compress;
-
-type IdBase = u128;
-
-#[derive(Clone, PartialEq, Eq, Ord, Hash, PartialOrd, Copy)]
-pub struct Def(pub IdBase);
-#[derive(Clone, PartialEq, Eq, Ord, Hash, PartialOrd, Copy, Debug)]
-pub struct Label(pub IdBase);
-
-#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Hash, Debug)]
-pub struct NodeId(pub IdBase);
-
-#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
-pub struct IdOffset(pub u32);
-
-impl Add<IdOffset> for NodeId {
-    type Output = NodeId;
-
-    fn add(self, rhs: IdOffset) -> Self::Output {
-        NodeId(self.0 + rhs.0 as IdBase)
-    }
-}
-
-impl Sub<NodeId> for NodeId {
-    type Output = IdOffset;
-
-    fn sub(self, rhs: NodeId) -> Self::Output {
-        IdOffset((self.0 - rhs.0) as u32)
-    }
-}
-
-/// Navigation part of Node
-#[enum_dispatch]
-pub trait NodeNav<TChild> {
-    /// For iterating children within a trait.
-    type TTraitChildren: Iterator<Item = TChild>;
-    /// For iterating the set of trait labels for non-empty traits..
-    type TLabels: Iterator<Item = Label>;
-
-    // TODO: Performance: walking traits could be faster if this returned a reference to the trait not just the labels (saves a map lookup)
-    fn get_traits(&self) -> Self::TLabels;
-    fn get_trait(&self, label: Label) -> Self::TTraitChildren;
-}
-
-/// Tree Node.
-/// Combines navigation with data (def and payload)
-#[enum_dispatch]
-pub trait Node {
-    fn get_def(&self) -> Def;
-    fn get_payload(&self) -> Option<forest::util::ImSlice>;
-}
-
-/// Id for a Node.
-/// Some Nodes don't implement this because their Id can be instead be inferred from context (ex: key it is under in a map).
-#[enum_dispatch]
-pub trait HasId {
-    fn get_id(&self) -> NodeId;
-}
 
 use id_compress::IdCompressor;
 use wasm_bindgen::prelude::*;

@@ -12,26 +12,14 @@ crate-type = ["lib"]
 [dependencies]
 im-rc = "15.0.0"
 num-integer = "0.1.44"
-rand = "0.8.4"
-ahash = "0.7.4"
-enum_dispatch = "0.3.7"
-derive_more = "0.99.16"
+rand = "0.8.5"
+ahash = "0.7.6"
+enum_dispatch = "0.3.8"
+derive_more = "0.99.17"
 
 [dev-dependencies]
-criterion = "0.3.4"
+criterion = "0.3.5"
 
 [[bench]]
 name = "benchmarks"
 harness = false
-
-[profile.bench]
-opt-level = 3
-# lto = true
-# panic = "abort"
-# debug = true
-
-[profile.release]
-# Optimize for small code size.
-opt-level = 3
-panic = "abort"
-lto = true
