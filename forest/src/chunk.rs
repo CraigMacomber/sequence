@@ -5,7 +5,7 @@ use crate::{IdOffset, NodeId};
 /// A `Chunk` of a Tree.
 /// Contains 0 or more nodes, all of which must have `NodeId` between (inclusive) some `first_id` and some `max_id`.
 /// No chunk within the same forest can have a range of ids that overlaps with any other.
-pub trait Chunk {
+pub trait Chunk: Clone + PartialEq {
     /// The representation of Nodes in this Chunk.
     type View;
 
@@ -13,11 +13,9 @@ pub trait Chunk {
     fn get(&self, first_id: NodeId, id: NodeId) -> Option<Self::View>;
 }
 
-pub trait Nodes: Chunk + Clone + PartialEq {}
-
 /// A chunk that uses all ids in a range.
 /// TODO: this is currently unused, but it might be cleaner to refactor UniformChunk to use this?
-pub trait DenseChunk {
+pub trait DenseChunk: Clone + PartialEq {
     /// The representation of Nodes in this Chunk.
     type View;
 
