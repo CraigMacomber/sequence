@@ -13,7 +13,11 @@ pub trait Chunk {
     fn get(&self, first_id: NodeId, id: NodeId) -> Option<Self::View>;
 }
 
-pub trait OffsetBasedChunk {
+pub trait Nodes: Chunk + Clone + PartialEq {}
+
+/// A chunk that uses all ids in a range.
+/// TODO: this is currently unused, but it might be cleaner to refactor UniformChunk to use this?
+pub trait DenseChunk {
     /// The representation of Nodes in this Chunk.
     type View;
 
@@ -21,20 +25,18 @@ pub trait OffsetBasedChunk {
     /// however no ids within the range may be used elsewhere (it is considered to own them)
     fn max_offset(&self) -> IdOffset;
 
-    fn get_from_offset(&self, first_id: NodeId, offset: IdOffset) -> Option<Self::View>;
+    fn get_from_offset(&self, offset: IdOffset) -> Self::View;
 }
 
-impl<T: OffsetBasedChunk> Chunk for T {
+impl<T: DenseChunk> Chunk for T {
     type View = T::View;
     fn get(&self, first_id: NodeId, id: NodeId) -> Option<Self::View> {
         if id < first_id {
             None
         } else if first_id + self.max_offset() < id {
-            self.get_from_offset(first_id, id - first_id)
+            Some(self.get_from_offset(id - first_id))
         } else {
             None
         }
     }
 }
-
-pub trait Nodes: Chunk + Clone + PartialEq {}
