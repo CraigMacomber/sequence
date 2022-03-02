@@ -1,8 +1,8 @@
 //! Generic Nav which handles child id indirection via a Resolver which returns an iterable of Nodes for an Id.
 
 use crate::{
+    node_id::{HasId, NodeId},
     tree::{Def, Label, NodeData, NodeNav, ParentInfo},
-    HasId, NodeId,
 };
 
 /// Chunk resolver

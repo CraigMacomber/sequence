@@ -26,18 +26,10 @@ or to virtualize the logical tree, and load chunks of it into the Forest.
                 - Maybe use conservative updates (skip regenerating just to do deletes sometimes)
 */
 
-use std::ops::{Add, Sub};
-
-use indirect::NodeView;
-
-use tree::{IdBase, Label};
-
 extern crate derive_more;
 extern crate enum_dispatch;
 extern crate im_rc;
 extern crate num_integer;
-
-use enum_dispatch::enum_dispatch;
 
 pub mod chunk;
 pub mod example_node;
@@ -46,37 +38,9 @@ pub mod indirect;
 pub mod indirect_nav;
 pub mod indirect_node;
 pub mod nav;
+pub mod node_id;
 pub mod tree;
 pub mod uniform_chunk;
 pub mod util;
 
 pub mod test_stuff;
-
-#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Hash, Debug)]
-pub struct NodeId(pub IdBase);
-
-#[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
-pub struct IdOffset(pub u32);
-
-impl Add<IdOffset> for NodeId {
-    type Output = NodeId;
-
-    fn add(self, rhs: IdOffset) -> Self::Output {
-        NodeId(self.0 + rhs.0 as IdBase)
-    }
-}
-
-impl Sub<NodeId> for NodeId {
-    type Output = IdOffset;
-
-    fn sub(self, rhs: NodeId) -> Self::Output {
-        IdOffset((self.0 - rhs.0) as u32)
-    }
-}
-
-/// Id for a Node.
-/// Some Nodes don't implement this because their Id can be instead be inferred from context (ex: key it is under in a map).
-#[enum_dispatch]
-pub trait HasId {
-    fn get_id(&self) -> NodeId;
-}

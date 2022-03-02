@@ -6,9 +6,9 @@ use crate::{
     indirect::{Child, NodeView},
     indirect_node::{BasicView, IndirectNode},
     nav::{self, ParentResolver, Resolver},
-    tree::{NodeNav, ParentInfo},
+    node_id::{HasId, NodeId},
+    tree::{Label, NodeNav, ParentInfo},
     uniform_chunk::{ChunkIterator, ChunkOffset, UniformChunk},
-    HasId, Label, NodeId,
 };
 
 /// Tree data, stored in the forest, keyed by the first id in the chunk.

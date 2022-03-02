@@ -8,9 +8,9 @@ use std::{
 };
 
 use crate::{
-    tree::{Def, NodeData, NodeNav},
+    node_id::NodeId,
+    tree::{Def, Label, NodeData, NodeNav},
     util::ImSlice,
-    Label, NodeId,
 };
 
 pub struct BasicNode {

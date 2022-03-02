@@ -2,9 +2,9 @@ use crate::{
     forest::ChunkId,
     indirect_nav::*,
     indirect_node::IndirectNode,
+    node_id::{IdOffset, NodeId},
     tree::{Def, Label, Node, NodeNav},
     uniform_chunk::{ChunkSchema, OffsetSchema, RootChunkSchema, UniformChunk},
-    IdOffset, NodeId,
 };
 use rand::Rng;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
@@ -30,9 +30,10 @@ pub fn chunked_tree(size: usize, per_chunk: usize) -> (Forest, NodeId) {
 
 pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeId) {
     let mut forest = Forest::new();
-    let _id = RefCell::new(0);
+
     let rng = RefCell::new(rand::thread_rng());
 
+    // let id = RefCell::new(0);
     // let new_node_id = || {
     //     let mut id = id.borrow_mut();
     //     *id = *id + 1;
@@ -295,8 +296,8 @@ pub fn walk_direct_all(forest: &Forest, id: ChunkId) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::node_id::HasId;
     use crate::tree::NodeNav;
-    use crate::HasId;
 
     #[test]
     fn basic_nodes() {

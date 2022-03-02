@@ -1,6 +1,6 @@
 //! A `Chunk` of a Tree.
 
-use crate::{IdOffset, NodeId};
+use crate::node_id::{IdOffset, NodeId};
 
 /// A `Chunk` of a Tree.
 /// Contains 0 or more nodes, all of which must have `NodeId` between (inclusive) some `first_id` and some `max_id`.

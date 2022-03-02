@@ -6,7 +6,12 @@
 
 use std::cell::{Ref, RefCell};
 
-use crate::{chunk::Chunk, tree::NodeNav, tree::ParentInfo, util::ImHashMap, NodeId};
+use crate::{
+    chunk::Chunk,
+    node_id::NodeId,
+    tree::{NodeNav, ParentInfo},
+    util::ImHashMap,
+};
 use im_rc::ordmap::DiffItem;
 
 // Chunk or BasicNode

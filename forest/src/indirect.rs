@@ -12,7 +12,10 @@ use derive_more::From;
 use enum_dispatch::enum_dispatch;
 
 use crate::{
-    forest::ChunkId, indirect_node::BasicView, tree::NodeNav, uniform_chunk::ChunkOffset, Label,
+    forest::ChunkId,
+    indirect_node::BasicView,
+    tree::{Label, NodeNav},
+    uniform_chunk::ChunkOffset,
 };
 
 /// Child type for the [crate::Node].
