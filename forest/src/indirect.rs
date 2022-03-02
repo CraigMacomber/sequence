@@ -56,7 +56,7 @@ impl<'a> DynView<'a> for ChunkOffset<'a> {
     }
 }
 
-#[enum_dispatch(HasId, DynView, Node)] // NodeNav
+#[enum_dispatch(HasId, DynView, NodeData)] // NodeNav
 #[derive(Clone)]
 pub enum NodeView<'a> {
     Single(BasicView<'a>),

@@ -7,7 +7,7 @@ use std::{
     slice,
 };
 
-use crate::{util::ImSlice, Def, Label, Node, NodeId, NodeNav};
+use crate::{util::ImSlice, Def, Label, NodeData, NodeId, NodeNav};
 
 pub struct BasicNode {
     pub id: NodeId,
@@ -29,7 +29,7 @@ impl<'a> NodeNav<&'a BasicNode> for &'a BasicNode {
     }
 }
 
-impl Node for BasicNode {
+impl NodeData for BasicNode {
     fn get_def(&self) -> Def {
         self.def
     }

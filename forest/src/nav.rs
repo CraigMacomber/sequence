@@ -1,6 +1,6 @@
 //! Generic Nav which handles child id indirection via a Resolver which returns an iterable of Nodes for an Id.
 
-use crate::{Def, HasId, Label, Node, NodeId, NodeNav, ParentInfo};
+use crate::{Def, HasId, Label, NodeData, NodeId, NodeNav, ParentInfo};
 
 /// Chunk resolver
 pub trait Resolver<Node>: Copy {
@@ -78,10 +78,10 @@ where
     }
 }
 
-impl<R, TNode> Node for Nav<R, TNode>
+impl<R, TNode> NodeData for Nav<R, TNode>
 where
     R: Resolver<TNode>,
-    TNode: Node,
+    TNode: NodeData,
 {
     fn get_def(&self) -> Def {
         self.view.get_def()

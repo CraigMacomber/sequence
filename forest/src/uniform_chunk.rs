@@ -6,7 +6,7 @@ use std::{iter::Cloned, rc::Rc, usize};
 use crate::{
     chunk::Chunk,
     util::{slice_with_length, ImSlice},
-    Def, HasId, IdOffset, Label, Node, NodeId, NodeNav,
+    Def, HasId, IdOffset, Label, NodeData, NodeId, NodeNav,
 };
 
 #[derive(Clone)]
@@ -247,7 +247,7 @@ impl<'a> NodeNav<ChunkOffset<'a>> for ChunkOffset<'a> {
 }
 
 // Views first item as chunk in as node
-impl<'a> Node for ChunkOffset<'a> {
+impl<'a> NodeData for ChunkOffset<'a> {
     fn get_def(&self) -> Def {
         self.view.schema.def
     }

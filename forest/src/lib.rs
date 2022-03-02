@@ -103,10 +103,14 @@ pub struct ParentInfo<TNode> {
 /// Tree Node.
 /// Combines navigation with data (def and payload)
 #[enum_dispatch]
-pub trait Node {
+pub trait NodeData {
     fn get_def(&self) -> Def;
     fn get_payload(&self) -> Option<ImSlice>;
 }
+
+pub trait Node<TChild>: NodeNav<TChild> + NodeData {}
+
+impl<TChild, TNode: NodeData + NodeNav<TChild>> Node<TChild> for TNode {}
 
 /// Id for a Node.
 /// Some Nodes don't implement this because their Id can be instead be inferred from context (ex: key it is under in a map).

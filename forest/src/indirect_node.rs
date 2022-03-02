@@ -8,7 +8,7 @@ use crate::{
     chunk::Chunk,
     forest::ChunkId,
     util::{ImHashMap, ImSlice},
-    Def, HasId, Label, Node, NodeId, NodeNav,
+    Def, HasId, Label, NodeData, NodeId, NodeNav,
 };
 
 #[derive(Clone, PartialEq)]
@@ -35,7 +35,7 @@ impl<'a> NodeNav<ChunkId> for &'a IndirectNode {
     }
 }
 
-impl Node for IndirectNode {
+impl NodeData for IndirectNode {
     fn get_def(&self) -> Def {
         self.def
     }
@@ -89,7 +89,7 @@ impl<'a> NodeNav<ChunkId> for BasicView<'a> {
     }
 }
 
-impl Node for BasicView<'_> {
+impl NodeData for BasicView<'_> {
     fn get_def(&self) -> Def {
         self.node.get_def()
     }
