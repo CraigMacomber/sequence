@@ -23,7 +23,6 @@ impl PartialEq for UniformChunk {
 
 pub struct RootChunkSchema {
     pub schema: ChunkSchema,
-    // TODO: include parent info in this
     /// Derived data (from schema) to enable fast lookup of views from id.
     id_offset_to_byte_offset_and_schema: Vec<Option<OffsetInfo>>,
 }
@@ -168,13 +167,30 @@ impl RootChunkSchema {
             let (div, rem) = num_integer::div_rem(id_offset, self.schema.id_stride);
             let info = self.id_offset_to_byte_offset_and_schema[rem as usize].as_ref()?;
             let byte_offset = info.byte_offset + div * self.schema.bytes_per_node;
-            let parent = ParentInfo {
-                parent: info.parent.parent,
-                index: match info.parent.parent {
-                    Some(_) => info.parent.index, // Index of parent? Used as index of child?
-                    None => div as usize, // This is index within chunk at chunk top level, not index within trait.
+
+            let parent = match info.parent.parent {
+                Some(info_parent) => ParentInfo {
+                    parent: Some((
+                        IdOffset(
+                            info_parent.0 .0
+                                + div
+                                    * self.id_offset_to_byte_offset_and_schema
+                                        [info_parent.0 .0 as usize]
+                                        .as_ref()
+                                        .unwrap()
+                                        .schema
+                                        .id_stride,
+                        ),
+                        info_parent.1,
+                    )),
+                    index: info.parent.index, // TODO: Index of parent? Used as index of child? Should this be div instead?
+                },
+                None => ParentInfo {
+                    parent: None,
+                    index: div as usize, // This is index within chunk at chunk top level, not index within trait.
                 },
             };
+
             Some(OffsetInfoRef {
                 byte_offset,
                 schema: &info.schema,

@@ -7,16 +7,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'sequence'",
+            "name": "Debug unit tests in library 'forest'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
                     "--lib",
-                    "--package=sequence"
+                    "--package=forest"
                 ],
                 "filter": {
-                    "name": "sequence",
+                    "name": "forest",
                     "kind": "lib"
                 }
             },
