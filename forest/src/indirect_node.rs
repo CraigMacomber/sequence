@@ -7,8 +7,9 @@ use std::{iter::Cloned, slice};
 use crate::{
     chunk::Chunk,
     forest::ChunkId,
+    tree::{Def, Label, NodeData, NodeNav},
     util::{ImHashMap, ImSlice},
-    Def, HasId, Label, NodeData, NodeId, NodeNav,
+    HasId, NodeId,
 };
 
 #[derive(Clone, PartialEq)]

@@ -30,7 +30,7 @@ use std::ops::{Add, Sub};
 
 use indirect::NodeView;
 
-use util::ImSlice;
+use tree::{IdBase, Label};
 
 extern crate derive_more;
 extern crate enum_dispatch;
@@ -46,17 +46,11 @@ pub mod indirect;
 pub mod indirect_nav;
 pub mod indirect_node;
 pub mod nav;
+pub mod tree;
 pub mod uniform_chunk;
 pub mod util;
 
 pub mod test_stuff;
-
-type IdBase = u128;
-
-#[derive(Clone, PartialEq, Eq, Ord, Hash, PartialOrd, Copy)]
-pub struct Def(pub IdBase);
-#[derive(Clone, PartialEq, Eq, Ord, Hash, PartialOrd, Copy, Debug)]
-pub struct Label(pub IdBase);
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Hash, Debug)]
 pub struct NodeId(pub IdBase);
@@ -79,38 +73,6 @@ impl Sub<NodeId> for NodeId {
         IdOffset((self.0 - rhs.0) as u32)
     }
 }
-
-/// Navigation part of Node
-#[enum_dispatch]
-pub trait NodeNav<TChild> {
-    /// For iterating children within a trait.
-    type TTraitChildren: Iterator<Item = TChild>;
-    /// For iterating the set of trait labels for non-empty traits..
-    type TLabels: Iterator<Item = Label>;
-
-    // TODO: Performance: walking traits could be faster if this returned a reference to the trait not just the labels (saves a map lookup)
-    fn get_traits(&self) -> Self::TLabels;
-    fn get_trait(&self, label: Label) -> Self::TTraitChildren;
-}
-
-/// Information about the parent of a Node.
-#[derive(Clone)]
-pub struct ParentInfo<TNode> {
-    pub node: TNode,
-    pub label: Label,
-}
-
-/// Tree Node.
-/// Combines navigation with data (def and payload)
-#[enum_dispatch]
-pub trait NodeData {
-    fn get_def(&self) -> Def;
-    fn get_payload(&self) -> Option<ImSlice>;
-}
-
-pub trait Node<TChild>: NodeNav<TChild> + NodeData {}
-
-impl<TChild, TNode: NodeData + NodeNav<TChild>> Node<TChild> for TNode {}
 
 /// Id for a Node.
 /// Some Nodes don't implement this because their Id can be instead be inferred from context (ex: key it is under in a map).

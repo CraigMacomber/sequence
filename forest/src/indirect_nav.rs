@@ -6,8 +6,9 @@ use crate::{
     indirect::{Child, NodeView},
     indirect_node::{BasicView, IndirectNode},
     nav::{self, ParentResolver, Resolver},
+    tree::{NodeNav, ParentInfo},
     uniform_chunk::{ChunkIterator, ChunkOffset, UniformChunk},
-    HasId, Label, NodeId, NodeNav, ParentInfo,
+    HasId, Label, NodeId,
 };
 
 /// Tree data, stored in the forest, keyed by the first id in the chunk.
@@ -153,7 +154,7 @@ impl<'a> Iterator for LabelIterator<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Def;
+    use crate::tree::Def;
 
     #[test]
     fn it_works() {

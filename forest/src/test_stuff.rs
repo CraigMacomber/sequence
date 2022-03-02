@@ -1,9 +1,11 @@
 use crate::{
     forest::ChunkId,
     indirect_nav::*,
+    indirect_node::IndirectNode,
+    tree::{Def, Label, Node, NodeNav},
     uniform_chunk::{ChunkSchema, OffsetSchema, RootChunkSchema, UniformChunk},
+    IdOffset, NodeId,
 };
-use crate::{indirect_node::IndirectNode, Def, IdOffset, Label, Node, NodeId, NodeNav};
 use rand::Rng;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -293,8 +295,8 @@ pub fn walk_direct_all(forest: &Forest, id: ChunkId) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tree::NodeNav;
     use crate::HasId;
-    use crate::NodeNav;
 
     #[test]
     fn basic_nodes() {

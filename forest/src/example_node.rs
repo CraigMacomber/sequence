@@ -7,7 +7,11 @@ use std::{
     slice,
 };
 
-use crate::{util::ImSlice, Def, Label, NodeData, NodeId, NodeNav};
+use crate::{
+    tree::{Def, NodeData, NodeNav},
+    util::ImSlice,
+    Label, NodeId,
+};
 
 pub struct BasicNode {
     pub id: NodeId,

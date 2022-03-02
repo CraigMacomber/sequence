@@ -5,8 +5,9 @@ use std::{iter::Cloned, rc::Rc, usize};
 
 use crate::{
     chunk::Chunk,
+    tree::{Def, Label, NodeData, NodeNav},
     util::{slice_with_length, ImSlice},
-    Def, HasId, IdOffset, Label, NodeData, NodeId, NodeNav,
+    HasId, IdOffset, NodeId,
 };
 
 #[derive(Clone)]

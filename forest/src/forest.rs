@@ -6,7 +6,7 @@
 
 use std::cell::{Ref, RefCell};
 
-use crate::{chunk::Chunk, util::ImHashMap, NodeId, NodeNav, ParentInfo};
+use crate::{chunk::Chunk, tree::NodeNav, tree::ParentInfo, util::ImHashMap, NodeId};
 use im_rc::ordmap::DiffItem;
 
 // Chunk or BasicNode
@@ -15,11 +15,11 @@ pub struct ChunkId(pub NodeId);
 
 // Chunks added to forest must have non-overlapping ranges of Ids.
 #[derive(Clone, Default)]
-pub struct Forest<TNodes> {
+pub struct Forest<TChunk> {
     /// Up to date actual data of tree
-    map: im_rc::OrdMap<ChunkId, TNodes>,
+    map: im_rc::OrdMap<ChunkId, TChunk>,
     /// Snapshot from last time parent_data was updated
-    old_map: RefCell<im_rc::OrdMap<ChunkId, TNodes>>,
+    old_map: RefCell<im_rc::OrdMap<ChunkId, TChunk>>,
     /// Lazily updated parent data
     parent_data: RefCell<ImHashMap<ChunkId, ParentInfo<ChunkId>>>,
 }
@@ -54,6 +54,11 @@ where
     /// Inserts a new chunk. May replace an existing one.
     pub fn insert(&mut self, id: ChunkId, value: TChunk) {
         self.map.insert(id, value);
+    }
+
+    /// Inserts a new chunk. May replace an existing one.
+    pub fn entry(&mut self, id: ChunkId) -> im_rc::ordmap::Entry<ChunkId, TChunk> {
+        self.map.entry(id)
     }
 }
 
