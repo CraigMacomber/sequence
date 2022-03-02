@@ -46,6 +46,7 @@ pub mod forest;
 pub mod indirect;
 pub mod indirect_nav;
 pub mod nav;
+pub mod uniform_chunk;
 pub mod util;
 
 pub mod test_stuff;

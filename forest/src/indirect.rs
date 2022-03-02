@@ -11,7 +11,9 @@
 use derive_more::From;
 use enum_dispatch::enum_dispatch;
 
-use crate::{basic_indirect::BasicView, chunk::ChunkOffset, forest::ChunkId, Label, NodeNav};
+use crate::{
+    basic_indirect::BasicView, forest::ChunkId, uniform_chunk::ChunkOffset, Label, NodeNav,
+};
 
 /// Child type for the [crate::Node].
 #[derive(From)]

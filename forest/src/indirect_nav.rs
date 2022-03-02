@@ -1,13 +1,12 @@
 //! Hookup the [BasicNode] to [Nav] using [Forest] as the [Resolver].
 
-use forest::Chunk;
-
 use crate::{
     basic_indirect::{BasicNode, BasicView},
-    chunk::{ChunkIterator, ChunkOffset, UniformChunk},
+    chunk::Chunk,
     forest::{self, ChunkId, ParentInfo},
     indirect::{Child, NodeView},
     nav::{self, ParentResolver, Resolver},
+    uniform_chunk::{ChunkIterator, ChunkOffset, UniformChunk},
     HasId, Label, NodeId, NodeNav,
 };
 
@@ -18,7 +17,7 @@ pub enum NavChunk {
     Chunk(UniformChunk),
 }
 
-impl<'a> forest::Chunk for &'a NavChunk {
+impl<'a> Chunk for &'a NavChunk {
     type View = NodeView<'a>;
     fn get(&self, first_id: NodeId, id: NodeId) -> Option<NodeView<'a>> {
         match self {
@@ -170,6 +169,6 @@ mod tests {
         let _n = forest.find_node(NodeId(5)).unwrap();
         let _nav = forest.nav_from(NodeId(5)).unwrap();
         let n = forest.find_nodes(ChunkId(NodeId(5))).unwrap();
-        let _n = forest::Chunk::get(&n, NodeId(5), NodeId(5)).unwrap();
+        let _n = Chunk::get(&n, NodeId(5), NodeId(5)).unwrap();
     }
 }

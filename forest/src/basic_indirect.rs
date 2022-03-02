@@ -1,11 +1,12 @@
-//! Simple tree that ChunkIds instead of its children.
+//! Simple tree that has ChunkIds as its children.
 //! Can be used with Forest to form a Tree.
 //! Nav can combine this with a Forest to produce a Tree API with child access methods.
 
 use std::{iter::Cloned, slice};
 
 use crate::{
-    forest::{self, ChunkId},
+    chunk::Chunk,
+    forest::ChunkId,
     util::{ImHashMap, ImSlice},
     Def, HasId, Label, Node, NodeId, NodeNav,
 };
@@ -58,7 +59,7 @@ pub struct BasicView<'a> {
     pub id: NodeId,
 }
 
-impl<'a> forest::Chunk for &'a BasicNode {
+impl<'a> Chunk for &'a BasicNode {
     type View = BasicView<'a>;
     fn get(&self, first_id: NodeId, id: NodeId) -> Option<BasicView<'a>> {
         if first_id == id {

@@ -6,35 +6,16 @@
 
 use std::cell::{Ref, RefCell};
 
-use crate::{util::ImHashMap, Label, NodeId, NodeNav};
+use crate::{
+    chunk::{Chunk, Nodes},
+    util::ImHashMap,
+    Label, NodeId, NodeNav,
+};
 use im_rc::ordmap::DiffItem;
 
 // Chunk or BasicNode
 #[derive(Ord, PartialOrd, Eq, PartialEq, Clone, Copy, Hash)]
 pub struct ChunkId(pub NodeId);
-
-pub trait Chunk {
-    type View;
-
-    /// A chunk is allowed to be sparse within its range,
-    /// however no ids within the range may be used elsewhere (it is considered to own them)
-    // fn max_offset(&self) -> IdOffset;
-
-    /// gets an node with an id owned by this chunk
-    fn get(&self, first_id: NodeId, id: NodeId) -> Option<Self::View>;
-
-    // fn get(&self, first_id: NodeId, id: NodeId) -> Option<Self::View> {
-    //     if id < first_id {
-    //         None
-    //     } else if first_id + self.max_offset() < id {
-    //         self.get_from_offset(id, id - first_id)
-    //     } else {
-    //         None
-    //     }
-    // }
-}
-
-pub trait Nodes: Chunk + Clone + PartialEq {}
 
 impl<'a, T: Chunk + Clone + PartialEq> Nodes for T {}
 

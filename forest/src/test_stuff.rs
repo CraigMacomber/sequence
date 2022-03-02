@@ -1,8 +1,8 @@
 use crate::{basic_indirect::BasicNode, Def, IdOffset, Label, Node, NodeId, NodeNav};
 use crate::{
-    chunk::{ChunkSchema, OffsetSchema, RootChunkSchema, UniformChunk},
     forest::ChunkId,
     indirect_nav::*,
+    uniform_chunk::{ChunkSchema, OffsetSchema, RootChunkSchema, UniformChunk},
 };
 use rand::Rng;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
