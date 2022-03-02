@@ -1,19 +1,19 @@
-//! Hookup the [BasicNode] to [Nav] using [Forest] as the [Resolver].
+//! Hookup the [IndirectNode] and [UniformChunk] to [Nav] using [Forest] as the [Resolver].
 
 use crate::{
-    basic_indirect::{BasicNode, BasicView},
     chunk::Chunk,
-    forest::{self, ChunkId, ParentInfo},
+    forest::{self, ChunkId},
     indirect::{Child, NodeView},
+    indirect_node::{BasicView, IndirectNode},
     nav::{self, ParentResolver, Resolver},
     uniform_chunk::{ChunkIterator, ChunkOffset, UniformChunk},
-    HasId, Label, NodeId, NodeNav,
+    HasId, Label, NodeId, NodeNav, ParentInfo,
 };
 
 /// Tree data, stored in the forest, keyed by the first id in the chunk.
 #[derive(Clone, PartialEq)]
 pub enum NavChunk {
-    Single(BasicNode),
+    Single(IndirectNode),
     Chunk(UniformChunk),
 }
 
@@ -28,6 +28,7 @@ impl<'a> Chunk for &'a NavChunk {
 }
 
 pub type Forest = forest::Forest<NavChunk>;
+
 pub enum Expander<'a> {
     Chunk(ChunkIterator<'a>),
     Single(NodeView<'a>),
@@ -128,7 +129,7 @@ impl<'a> NodeNav<ChunkId> for &'a NavChunk {
     fn get_trait(&self, label: Label) -> Self::TTraitChildren {
         match self {
             NavChunk::Single(s) => s.get_trait(label),
-            NavChunk::Chunk(_) => BasicNode::empty_trait(),
+            NavChunk::Chunk(_) => IndirectNode::empty_trait(),
         }
     }
 }
@@ -159,7 +160,7 @@ mod tests {
         let mut forest = Forest::new();
         forest.insert(
             ChunkId(NodeId(5)),
-            NavChunk::Single(BasicNode {
+            NavChunk::Single(IndirectNode {
                 def: Def(1),
                 payload: None,
                 traits: im_rc::HashMap::default(),

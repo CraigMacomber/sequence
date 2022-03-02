@@ -6,7 +6,7 @@
 
 use std::cell::{Ref, RefCell};
 
-use crate::{chunk::Chunk, util::ImHashMap, Label, NodeId, NodeNav};
+use crate::{chunk::Chunk, util::ImHashMap, NodeId, NodeNav, ParentInfo};
 use im_rc::ordmap::DiffItem;
 
 // Chunk or BasicNode
@@ -22,12 +22,6 @@ pub struct Forest<TNodes> {
     old_map: RefCell<im_rc::OrdMap<ChunkId, TNodes>>,
     /// Lazily updated parent data
     parent_data: RefCell<ImHashMap<ChunkId, ParentInfo<ChunkId>>>,
-}
-
-#[derive(Clone)]
-pub struct ParentInfo<TNode> {
-    pub node: TNode,
-    pub label: Label,
 }
 
 impl<TNodes> Forest<TNodes> {

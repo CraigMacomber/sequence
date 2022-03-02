@@ -39,12 +39,12 @@ extern crate num_integer;
 
 use enum_dispatch::enum_dispatch;
 
-pub mod basic;
-pub mod basic_indirect;
 pub mod chunk;
+pub mod example_node;
 pub mod forest;
 pub mod indirect;
 pub mod indirect_nav;
+pub mod indirect_node;
 pub mod nav;
 pub mod uniform_chunk;
 pub mod util;
@@ -91,6 +91,13 @@ pub trait NodeNav<TChild> {
     // TODO: Performance: walking traits could be faster if this returned a reference to the trait not just the labels (saves a map lookup)
     fn get_traits(&self) -> Self::TLabels;
     fn get_trait(&self, label: Label) -> Self::TTraitChildren;
+}
+
+/// Information about the parent of a Node.
+#[derive(Clone)]
+pub struct ParentInfo<TNode> {
+    pub node: TNode,
+    pub label: Label,
 }
 
 /// Tree Node.

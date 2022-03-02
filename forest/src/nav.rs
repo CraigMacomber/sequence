@@ -1,6 +1,6 @@
 //! Generic Nav which handles child id indirection via a Resolver which returns an iterable of Nodes for an Id.
 
-use crate::{forest::ParentInfo, Def, HasId, Label, Node, NodeId, NodeNav};
+use crate::{Def, HasId, Label, Node, NodeId, NodeNav, ParentInfo};
 
 /// Chunk resolver
 pub trait Resolver<Node>: Copy {

@@ -12,7 +12,7 @@ use crate::{
 };
 
 #[derive(Clone, PartialEq)]
-pub struct BasicNode {
+pub struct IndirectNode {
     pub def: Def,
     // Payload is often not used, so indirect it to keep the size down.
     pub payload: Option<Box<im_rc::Vector<u8>>>,
@@ -20,7 +20,7 @@ pub struct BasicNode {
     pub traits: ImHashMap<Label, Vec<ChunkId>>,
 }
 
-impl<'a> NodeNav<ChunkId> for &'a BasicNode {
+impl<'a> NodeNav<ChunkId> for &'a IndirectNode {
     type TTraitChildren = Cloned<slice::Iter<'a, ChunkId>>;
     type TLabels = Cloned<im_rc::hashmap::Keys<'a, Label, Vec<ChunkId>>>;
 
@@ -31,11 +31,11 @@ impl<'a> NodeNav<ChunkId> for &'a BasicNode {
     fn get_trait(&self, label: Label) -> Self::TTraitChildren {
         self.traits
             .get(&label)
-            .map_or(BasicNode::empty_trait(), |x| x.iter().cloned())
+            .map_or(IndirectNode::empty_trait(), |x| x.iter().cloned())
     }
 }
 
-impl Node for BasicNode {
+impl Node for IndirectNode {
     fn get_def(&self) -> Def {
         self.def
     }
@@ -45,7 +45,7 @@ impl Node for BasicNode {
     }
 }
 
-impl BasicNode {
+impl IndirectNode {
     const EMPTY: [ChunkId; 0] = [];
     pub fn empty_trait() -> Cloned<slice::Iter<'static, ChunkId>> {
         Self::EMPTY.iter().cloned()
@@ -55,11 +55,11 @@ impl BasicNode {
 /// View of a BasicNode with an Id.
 #[derive(Clone)]
 pub struct BasicView<'a> {
-    pub node: &'a BasicNode,
+    pub node: &'a IndirectNode,
     pub id: NodeId,
 }
 
-impl<'a> Chunk for &'a BasicNode {
+impl<'a> Chunk for &'a IndirectNode {
     type View = BasicView<'a>;
     fn get(&self, first_id: NodeId, id: NodeId) -> Option<BasicView<'a>> {
         if first_id == id {

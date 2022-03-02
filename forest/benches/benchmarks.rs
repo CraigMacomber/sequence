@@ -2,7 +2,7 @@ use criterion::{
     black_box, criterion_group, criterion_main, measurement::WallTime, Bencher, Criterion,
 };
 use forest::{
-    basic,
+    example_node,
     forest::ChunkId,
     test_stuff::{chunked_tree, walk_all, walk_direct_all},
     Def, Label, NodeId,
@@ -17,7 +17,7 @@ fn big_basic_tree(size: usize) {
     let new_label = || -> Label { Label(rng.borrow_mut().gen()) };
     let new_def = || -> Def { Def(rng.borrow_mut().gen()) };
 
-    let mut b = basic::BasicNode {
+    let mut b = example_node::BasicNode {
         def: new_def(),
         id: new_node_id(),
         payload: None,
@@ -30,7 +30,7 @@ fn big_basic_tree(size: usize) {
         label,
         (0..size)
             .into_iter()
-            .map(|_| basic::BasicNode {
+            .map(|_| example_node::BasicNode {
                 def: new_def(),
                 id: new_node_id(),
                 payload: None,
