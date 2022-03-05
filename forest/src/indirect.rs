@@ -33,32 +33,50 @@ pub enum TraitView<'a> {
     Chunk(<ChunkOffset<'a> as NodeNav<ChunkOffset<'a>>>::TTraitChildren),
 }
 
+// enum_dispatch does not work with this use of NodeNav, so define another more specific trait instead.
 #[enum_dispatch]
 pub trait DynView<'a> {
     fn get_traits(&self) -> LabelIterator<'a>;
     fn get_trait(&self, label: Label) -> TraitView<'a>;
 }
 
-impl<'a> DynView<'a> for BasicView<'a> {
-    fn get_traits(&self) -> LabelIterator<'a> {
-        <Self as NodeNav<ChunkId>>::get_traits(self).into()
-    }
+macro_rules! impl_DynView {
+    ($name:ident, $child:ty) => {
+        impl<'a> DynView<'a> for $name<'a> {
+            fn get_traits(&self) -> LabelIterator<'a> {
+                <Self as crate::tree::NodeNav<$child>>::get_traits(self).into()
+            }
 
-    fn get_trait(&self, label: Label) -> TraitView<'a> {
-        <Self as NodeNav<ChunkId>>::get_trait(self, label).into()
-    }
+            fn get_trait(&self, label: Label) -> TraitView<'a> {
+                <Self as crate::tree::NodeNav<$child>>::get_trait(self, label).into()
+            }
+        }
+    };
 }
 
-impl<'a> DynView<'a> for ChunkOffset<'a> {
-    fn get_traits(&self) -> LabelIterator<'a> {
-        <Self as NodeNav<ChunkOffset<'a>>>::get_traits(self).into()
-    }
+impl_DynView!(ChunkOffset, ChunkOffset<'a>);
+impl_DynView!(BasicView, ChunkId);
 
-    fn get_trait(&self, label: Label) -> TraitView<'a> {
-        <Self as NodeNav<ChunkOffset<'a>>>::get_trait(self, label).into()
-    }
-}
+// impl<'a, T, TChild> DynView<'a> for T
+// where
+//     T: NodeNav<TChild>,
+//     TChild: Into<Child<'a>>,
+// {
+//     fn get_traits(&self) -> LabelIterator<'a> {
+//         <Self as NodeNav<TChild>>::get_traits(self).into()
+//     }
 
+//     fn get_trait(&self, label: Label) -> TraitView<'a> {
+//         <Self as NodeNav<TChild>>::get_trait(self, label).into()
+//     }
+// }
+
+// impl<'a, T, TChild> T
+// where
+//     T: NodeNav<TChild>,
+//     TChild: Into<Child<'a>>,
+// {
+// }
 #[enum_dispatch(HasId, DynView, NodeData)] // NodeNav
 #[derive(Clone)]
 pub enum NodeView<'a> {

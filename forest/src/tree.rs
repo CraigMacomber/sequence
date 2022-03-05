@@ -13,7 +13,6 @@ pub struct Def(pub IdBase);
 pub struct Label(pub IdBase);
 
 /// Navigation part of Node
-#[enum_dispatch]
 pub trait NodeNav<TChild> {
     /// For iterating children within a trait.
     type TTraitChildren: Iterator<Item = TChild>;
