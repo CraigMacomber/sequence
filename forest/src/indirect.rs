@@ -8,14 +8,11 @@
 //! (and dealing with the fact that a trait may contain a mix of chunks and basic nodes, and the chunks might contain multiple top level nodes)
 //! is done by [crate::indirect_nav] which wraps this node in a Node implementation up with a forest using [crate::nav::Nav].
 
-use crate::{forest::ChunkId, indirect_node::IndirectNode, uniform_chunk::UniformChunkNode};
+use crate::{indirect_node::IndirectChunk, uniform_chunk::UniformChunk};
 
 // TODO: support undownloaded chunks blobs (find can return which blobs and at what offset the node is at)
 // TODO: support undownloaded subtrees that arn't chunks: find returns iterator of candidate trees using bloom filters
 // TODO: these types are write optimized. Consider supporting read/size optimized types (ex: using byte array instead of im's Vector)
 // TODO: maybe chunks referencing external subtrees (so they can have child references like payloads)
 
-crate::enum_node::fromMembers![
-    (IndirectNode, ChunkId),
-    (UniformChunkNode, UniformChunkNode<'a>)
-];
+crate::enum_node::fromMembers![(Indirect, IndirectChunk), (Uniform, UniformChunk)];
