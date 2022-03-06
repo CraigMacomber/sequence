@@ -10,10 +10,6 @@ pub trait Resolver<Node>: Copy {
     type ChunkId;
     type Iter: Iterator<Item = Node>;
     fn expand(&self, chunk: Self::ChunkId) -> Self::Iter;
-}
-
-/// Parent resolver
-pub trait ParentResolver<Node>: Copy {
     fn get_parent(&self, node: &Node) -> Option<ParentInfo<Node>>;
 }
 
@@ -23,30 +19,26 @@ pub struct Nav<R, TNode> {
     view: TNode,
 }
 
-impl<R, TNode> Nav<R, TNode> {
+impl<R, TNode> Nav<R, TNode>
+where
+    R: Resolver<TNode>,
+    TNode: HasId,
+{
     pub fn new(resolver: R, view: TNode) -> Self {
         Nav { resolver, view }
     }
-}
 
-impl<R, TNode> HasId for Nav<R, TNode>
-where
-    TNode: HasId,
-{
-    fn get_id(&self) -> NodeId {
-        self.view.get_id()
-    }
-}
-
-impl<R, TNode> Nav<R, TNode>
-where
-    R: ParentResolver<TNode>,
-{
     pub fn parent(&self) -> Option<ParentInfo<Self>> {
         self.resolver.get_parent(&self.view).map(|p| ParentInfo {
             node: Self::new(self.resolver, p.node),
             label: p.label,
         })
+    }
+}
+
+impl<R, TNode: HasId> HasId for Nav<R, TNode> {
+    fn get_id(&self) -> NodeId {
+        self.view.get_id()
     }
 }
 

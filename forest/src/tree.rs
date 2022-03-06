@@ -1,8 +1,5 @@
 //! Core types of the tree abstraction.
 
-use enum_dispatch::enum_dispatch;
-
-use crate::indirect::NodeView;
 use crate::util::ImSlice;
 
 pub type IdBase = u128;
@@ -26,7 +23,6 @@ pub trait NodeNav<TChild> {
 
 /// Tree Node.
 /// Combines navigation with data (def and payload)
-#[enum_dispatch]
 pub trait NodeData {
     fn get_def(&self) -> Def;
     fn get_payload(&self) -> Option<ImSlice>;

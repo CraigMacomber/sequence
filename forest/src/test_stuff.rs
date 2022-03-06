@@ -51,7 +51,7 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
 
     forest.insert(
         ChunkId(root_id),
-        NavChunk::Single(IndirectNode {
+        NavChunk::BasicView(IndirectNode {
             def,
             payload: None,
             traits: im_rc::HashMap::default(),
@@ -62,7 +62,7 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
         let id = new_node_id();
         forest.insert(
             ChunkId(id),
-            NavChunk::Single(IndirectNode {
+            NavChunk::BasicView(IndirectNode {
                 def,
                 payload: None, //Some(im_rc::Vector::from_iter([1u8].iter().cloned()).into()),
                 traits: im_rc::HashMap::default(),
@@ -75,7 +75,7 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
         let parent = forest.find_nodes_mut(ChunkId(parent_id)).unwrap();
 
         match parent {
-            NavChunk::Single(basic) => {
+            NavChunk::BasicView(basic) => {
                 basic
                     .traits
                     .entry(label)
@@ -156,7 +156,7 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
             debug_assert_eq!(data.len(), chunk_size * 4);
             forest.insert(
                 ChunkId(id),
-                NavChunk::Chunk(UniformChunk {
+                NavChunk::ChunkOffset(UniformChunk {
                     schema: chunk_schema.clone(),
                     data: data.into(),
                 }),
@@ -168,7 +168,7 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
             let parent = forest.find_nodes_mut(ChunkId(parent_id)).unwrap();
 
             match parent {
-                NavChunk::Single(basic) => {
+                NavChunk::BasicView(basic) => {
                     basic
                         .traits
                         .entry(label)
@@ -199,7 +199,7 @@ pub fn simple_tree() -> (Forest, NodeId) {
 
     forest.insert(
         ChunkId(root_id),
-        NavChunk::Single(IndirectNode {
+        NavChunk::BasicView(IndirectNode {
             def,
             payload: None,
             traits: im_rc::HashMap::default(),
@@ -246,7 +246,7 @@ pub fn simple_tree() -> (Forest, NodeId) {
             .collect();
         forest.insert(
             ChunkId(id),
-            NavChunk::Chunk(UniformChunk {
+            NavChunk::ChunkOffset(UniformChunk {
                 schema: chunk_schema.clone(),
                 data: data.into(),
             }),
@@ -258,7 +258,7 @@ pub fn simple_tree() -> (Forest, NodeId) {
         let parent = forest.find_nodes_mut(ChunkId(parent_id)).unwrap();
 
         match parent {
-            NavChunk::Single(basic) => {
+            NavChunk::BasicView(basic) => {
                 basic
                     .traits
                     .entry(label)
@@ -399,7 +399,7 @@ mod tests {
         let data: im_rc::Vector<u8> = [1u8, 2, 3, 4].iter().cloned().collect();
         forest.insert(
             ChunkId(id),
-            NavChunk::Chunk(UniformChunk {
+            NavChunk::ChunkOffset(UniformChunk {
                 schema: chunk_schema.clone(),
                 data: data.into(),
             }),

@@ -5,7 +5,7 @@ use crate::{
     forest::{self, ChunkId},
     indirect::{Child, NodeView},
     indirect_node::{BasicView, IndirectNode},
-    nav::{self, ParentResolver, Resolver},
+    nav::{self, Resolver},
     node_id::{HasId, NodeId},
     tree::{Label, NodeNav, ParentInfo},
     uniform_chunk::{ChunkIterator, ChunkOffset, UniformChunk},
@@ -14,16 +14,16 @@ use crate::{
 /// Tree data, stored in the forest, keyed by the first id in the chunk.
 #[derive(Clone, PartialEq)]
 pub enum NavChunk {
-    Single(IndirectNode),
-    Chunk(UniformChunk),
+    BasicView(IndirectNode),
+    ChunkOffset(UniformChunk),
 }
 
 impl<'a> Chunk for &'a NavChunk {
     type View = NodeView<'a>;
     fn get(&self, first_id: NodeId, id: NodeId) -> Option<NodeView<'a>> {
         match self {
-            NavChunk::Single(node) => node.get(first_id, id).map(NodeView::Single),
-            NavChunk::Chunk(c) => c.get(first_id, id).map(NodeView::Chunk),
+            NavChunk::BasicView(node) => node.get(first_id, id).map(NodeView::BasicView),
+            NavChunk::ChunkOffset(c) => c.get(first_id, id).map(NodeView::ChunkOffset),
         }
     }
 }
@@ -31,8 +31,8 @@ impl<'a> Chunk for &'a NavChunk {
 pub type Forest = forest::Forest<NavChunk>;
 
 pub enum Expander<'a> {
-    Chunk(ChunkIterator<'a>),
-    Single(NodeView<'a>),
+    ChunkOffset(ChunkIterator<'a>),
+    BasicView(NodeView<'a>),
     Empty,
 }
 
@@ -41,8 +41,8 @@ impl<'a> Iterator for Expander<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Expander::Chunk(ref mut c) => c.next().map(NodeView::Chunk),
-            Expander::Single(ref mut c) => {
+            Expander::ChunkOffset(ref mut c) => c.next().map(NodeView::ChunkOffset),
+            Expander::BasicView(ref mut c) => {
                 let result = c.clone();
                 *self = Expander::Empty;
                 Some(result)
@@ -59,31 +59,31 @@ impl<'a> Resolver<NodeView<'a>> for &'a Forest {
 
     fn expand(&self, chunk: Self::ChunkId) -> Self::Iter {
         match chunk {
-            Child::Id(id) => match self.find_nodes(id).unwrap() {
-                NavChunk::Single(basic) => Expander::Single(NodeView::Single(BasicView {
+            Child::BasicView(id) => match self.find_nodes(id).unwrap() {
+                NavChunk::BasicView(basic) => Expander::BasicView(NodeView::BasicView(BasicView {
                     node: basic,
                     id: id.0,
                 })),
-                NavChunk::Chunk(chunk) => Expander::Chunk(ChunkIterator::View(ChunkOffset {
-                    view: chunk.view(id.0),
-                    offset: 0,
-                })),
+                NavChunk::ChunkOffset(chunk) => {
+                    Expander::ChunkOffset(ChunkIterator::View(ChunkOffset {
+                        view: chunk.view(id.0),
+                        offset: 0,
+                    }))
+                }
             },
-            Child::Chunk(chunk) => Expander::Chunk(ChunkIterator::View(chunk)),
+            Child::ChunkOffset(chunk) => Expander::ChunkOffset(ChunkIterator::View(chunk)),
         }
     }
-}
 
-impl<'a> ParentResolver<NodeView<'a>> for &'a Forest {
     fn get_parent(&self, node: &NodeView<'a>) -> Option<ParentInfo<NodeView<'a>>> {
         match node {
-            NodeView::Single(basic) => self.get_parent_from_chunk_id(ChunkId(basic.id)),
-            NodeView::Chunk(chunk) => {
+            NodeView::BasicView(basic) => self.get_parent_from_chunk_id(ChunkId(basic.id)),
+            NodeView::ChunkOffset(chunk) => {
                 // TODO: Performance: maybe avoid id lookup then node look up from id below?
                 let id = chunk.get_id();
                 let (chunk_id, chunk) = self.find_nodes_from_node(id).unwrap();
                 match chunk {
-                    NavChunk::Chunk(c) => {
+                    NavChunk::ChunkOffset(c) => {
                         let info = c.schema.lookup_schema(chunk_id.0, id).unwrap();
                         let parent = match info.parent.parent {
                             Some(x) => x,
@@ -92,7 +92,7 @@ impl<'a> ParentResolver<NodeView<'a>> for &'a Forest {
                             }
                         };
                         Some(ParentInfo {
-                            node: NodeView::Chunk(
+                            node: NodeView::ChunkOffset(
                                 c.get(chunk_id.0, chunk_id.0 + parent.0).unwrap(),
                             ),
                             label: parent.1,
@@ -122,15 +122,15 @@ impl<'a> NodeNav<ChunkId> for &'a NavChunk {
 
     fn get_traits(&self) -> Self::TLabels {
         match self {
-            NavChunk::Single(s) => LabelIterator::Single(s.get_traits()),
-            NavChunk::Chunk(_) => LabelIterator::Empty,
+            NavChunk::BasicView(s) => LabelIterator::Single(s.get_traits()),
+            NavChunk::ChunkOffset(_) => LabelIterator::Empty,
         }
     }
 
     fn get_trait(&self, label: Label) -> Self::TTraitChildren {
         match self {
-            NavChunk::Single(s) => s.get_trait(label),
-            NavChunk::Chunk(_) => IndirectNode::empty_trait(),
+            NavChunk::BasicView(s) => s.get_trait(label),
+            NavChunk::ChunkOffset(_) => IndirectNode::empty_trait(),
         }
     }
 }
@@ -161,7 +161,7 @@ mod tests {
         let mut forest = Forest::new();
         forest.insert(
             ChunkId(NodeId(5)),
-            NavChunk::Single(IndirectNode {
+            NavChunk::BasicView(IndirectNode {
                 def: Def(1),
                 payload: None,
                 traits: im_rc::HashMap::default(),

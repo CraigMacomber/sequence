@@ -1,9 +1,5 @@
 use std::ops::{Add, Sub};
 
-use enum_dispatch::enum_dispatch;
-
-use crate::indirect::NodeView;
-
 use crate::tree::IdBase;
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Hash, Debug)]
@@ -30,7 +26,6 @@ impl Sub<NodeId> for NodeId {
 
 /// Id for a Node.
 /// Some Nodes don't implement this because their Id can be instead be inferred from context (ex: key it is under in a map).
-#[enum_dispatch]
 pub trait HasId {
     fn get_id(&self) -> NodeId;
 }

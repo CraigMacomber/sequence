@@ -14,7 +14,6 @@ im-rc = "15.0.0"
 num-integer = "0.1.44"
 rand = "0.8.5"
 ahash = "0.7.6"
-enum_dispatch = "0.3.8"
 derive_more = "0.99.17"
 
 [dev-dependencies]
