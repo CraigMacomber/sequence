@@ -13,7 +13,7 @@ use crate::{
 };
 
 #[derive(Clone, PartialEq)]
-pub struct IndirectNode {
+pub struct IndirectChunk {
     pub def: Def,
     // Payload is often not used, so indirect it to keep the size down.
     pub payload: Option<Box<im_rc::Vector<u8>>>,
@@ -21,7 +21,7 @@ pub struct IndirectNode {
     pub traits: ImHashMap<Label, Vec<ChunkId>>,
 }
 
-impl<'a> NodeNav<ChunkId> for &'a IndirectNode {
+impl<'a> NodeNav<ChunkId> for &'a IndirectChunk {
     type TTraitChildren = Cloned<slice::Iter<'a, ChunkId>>;
     type TLabels = Cloned<im_rc::hashmap::Keys<'a, Label, Vec<ChunkId>>>;
 
@@ -32,11 +32,11 @@ impl<'a> NodeNav<ChunkId> for &'a IndirectNode {
     fn get_trait(&self, label: Label) -> Self::TTraitChildren {
         self.traits
             .get(&label)
-            .map_or(IndirectNode::empty_trait(), |x| x.iter().cloned())
+            .map_or(IndirectChunk::empty_trait(), |x| x.iter().cloned())
     }
 }
 
-impl NodeData for IndirectNode {
+impl NodeData for IndirectChunk {
     fn get_def(&self) -> Def {
         self.def
     }
@@ -46,7 +46,7 @@ impl NodeData for IndirectNode {
     }
 }
 
-impl IndirectNode {
+impl IndirectChunk {
     const EMPTY: [ChunkId; 0] = [];
     pub fn empty_trait() -> Cloned<slice::Iter<'static, ChunkId>> {
         Self::EMPTY.iter().cloned()
@@ -55,29 +55,30 @@ impl IndirectNode {
 
 /// View of a BasicNode with an Id.
 #[derive(Clone)]
-pub struct BasicView<'a> {
-    pub node: &'a IndirectNode,
+pub struct IndirectNode<'a> {
+    pub node: &'a IndirectChunk,
     pub id: NodeId,
 }
 
-impl<'a> Chunk for &'a IndirectNode {
-    type View = BasicView<'a>;
-    fn get(&self, first_id: NodeId, id: NodeId) -> Option<BasicView<'a>> {
+impl<'a> Chunk for &'a IndirectChunk {
+    type View = IndirectNode<'a>;
+    type Child = ChunkId;
+    fn get(&self, first_id: NodeId, id: NodeId) -> Option<IndirectNode<'a>> {
         if first_id == id {
-            Some(BasicView { node: self, id })
+            Some(IndirectNode { node: self, id })
         } else {
             None
         }
     }
 }
 
-impl HasId for BasicView<'_> {
+impl HasId for IndirectNode<'_> {
     fn get_id(&self) -> NodeId {
         self.id
     }
 }
 
-impl<'a> NodeNav<ChunkId> for BasicView<'a> {
+impl<'a> NodeNav<ChunkId> for IndirectNode<'a> {
     type TTraitChildren = Cloned<slice::Iter<'a, ChunkId>>;
     type TLabels = Cloned<im_rc::hashmap::Keys<'a, Label, Vec<ChunkId>>>;
 
@@ -90,7 +91,7 @@ impl<'a> NodeNav<ChunkId> for BasicView<'a> {
     }
 }
 
-impl NodeData for BasicView<'_> {
+impl NodeData for IndirectNode<'_> {
     fn get_def(&self) -> Def {
         self.node.get_def()
     }

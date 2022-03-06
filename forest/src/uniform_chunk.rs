@@ -130,15 +130,16 @@ pub struct OffsetSchema {
 // Views
 
 #[derive(Clone)]
-pub struct ChunkView<'a> {
+pub struct ChunkInfo<'a> {
     first_id: NodeId,
     schema: &'a ChunkSchema,
     data: ImSlice<'a>,
 }
 
 impl<'a> Chunk for &'a UniformChunk {
-    type View = ChunkOffset<'a>;
-    fn get(&self, first_id: NodeId, id: NodeId) -> Option<ChunkOffset<'a>> {
+    type View = UniformChunkNode<'a>;
+    type Child = UniformChunkNode<'a>;
+    fn get(&self, first_id: NodeId, id: NodeId) -> Option<UniformChunkNode<'a>> {
         match self.schema.lookup_schema(first_id, id) {
             Some(info) => {
                 let data = slice_with_length(
@@ -146,12 +147,12 @@ impl<'a> Chunk for &'a UniformChunk {
                     info.byte_offset as usize,
                     info.schema.bytes_per_node as usize,
                 );
-                let view = ChunkView {
+                let view = ChunkInfo {
                     first_id: id,
                     schema: &info.schema,
                     data,
                 };
-                Some(ChunkOffset { view, offset: 0 })
+                Some(UniformChunkNode { view, offset: 0 })
             }
             None => None,
         }
@@ -203,18 +204,19 @@ impl RootChunkSchema {
     }
 }
 
+/// Node withing a [UniformChunk]
 #[derive(Clone)]
-pub struct ChunkOffset<'a> {
-    pub view: ChunkView<'a>,
-    pub offset: u32, // index of current node in ChunkView
+pub struct UniformChunkNode<'a> {
+    pub view: ChunkInfo<'a>,
+    pub offset: u32, // index of current node in ChunkInfo
 }
 
 impl UniformChunk {
     pub fn get_count(&self) -> usize {
         self.schema.schema.node_count as usize
     }
-    pub fn view(&self, id: NodeId) -> ChunkView {
-        ChunkView {
+    pub fn view(&self, id: NodeId) -> ChunkInfo {
+        ChunkInfo {
             first_id: id,
             schema: &self.schema.schema,
             data: self.data.focus(),
@@ -222,7 +224,7 @@ impl UniformChunk {
     }
 }
 
-impl<'a> ChunkOffset<'a> {
+impl<'a> UniformChunkNode<'a> {
     fn data(&self) -> ImSlice<'a> {
         let offset = self.offset as usize;
         let stride = self.view.schema.bytes_per_node as usize;
@@ -231,7 +233,7 @@ impl<'a> ChunkOffset<'a> {
     }
 }
 
-impl<'a> NodeNav<ChunkOffset<'a>> for ChunkOffset<'a> {
+impl<'a> NodeNav<UniformChunkNode<'a>> for UniformChunkNode<'a> {
     type TTraitChildren = ChunkIterator<'a>;
     type TLabels = Cloned<std::collections::hash_map::Keys<'a, Label, OffsetSchema>>;
 
@@ -249,9 +251,9 @@ impl<'a> NodeNav<ChunkOffset<'a>> for ChunkOffset<'a> {
                     x.schema.bytes_per_node as usize,
                 );
                 let trait_first_id = self.get_id() + x.id_offset;
-                ChunkIterator::View(ChunkOffset {
+                ChunkIterator::View(UniformChunkNode {
                     offset: 0,
-                    view: ChunkView {
+                    view: ChunkInfo {
                         schema: &x.schema,
                         data: trait_data,
                         first_id: trait_first_id,
@@ -264,7 +266,7 @@ impl<'a> NodeNav<ChunkOffset<'a>> for ChunkOffset<'a> {
 }
 
 // Views first item as chunk in as node
-impl<'a> NodeData for ChunkOffset<'a> {
+impl<'a> NodeData for UniformChunkNode<'a> {
     fn get_def(&self) -> Def {
         self.view.schema.def
     }
@@ -281,19 +283,19 @@ impl<'a> NodeData for ChunkOffset<'a> {
 }
 
 // Views first item as chunk in as node
-impl HasId for ChunkOffset<'_> {
+impl HasId for UniformChunkNode<'_> {
     fn get_id(&self) -> NodeId {
         self.view.first_id + IdOffset(self.offset * self.view.schema.id_stride)
     }
 }
 
 pub enum ChunkIterator<'a> {
-    View(ChunkOffset<'a>),
+    View(UniformChunkNode<'a>),
     Empty,
 }
 
 impl<'a> Iterator for ChunkIterator<'a> {
-    type Item = ChunkOffset<'a>;
+    type Item = UniformChunkNode<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {

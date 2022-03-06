@@ -1,5 +1,8 @@
 /// Create an `enum` from a list of types implementing [crate::tree::Node] with members made from a list of types which implement [crate::tree::Node].
-macro_rules! impl_ComboForest {
+/// TODO:
+/// 1. use Chunk types as parameters. Access view types via Chunk::View.
+/// 2. move logic from [indirect_nav] into here.
+macro_rules! fromMembers {
     ( $(($name:ident, $child:ty)),+ $(,)?) => {
         #[derive(::derive_more::From)]
         pub enum Child<'a> {$(
@@ -81,4 +84,4 @@ macro_rules! impl_ComboForest {
     }
 }
 
-pub(crate) use impl_ComboForest;
+pub(crate) use fromMembers;
