@@ -118,7 +118,7 @@ impl Forest {
     pub fn update_chunk(
         &mut self,
         id: forest::ChunkId,
-    ) -> im_rc::ordmap::Entry<forest::ChunkId, indirect_nav::NavChunk> {
+    ) -> im_rc::ordmap::Entry<forest::ChunkId, indirect::NavChunk> {
         self.forest.entry(id)
     }
 

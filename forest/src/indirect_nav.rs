@@ -3,28 +3,21 @@
 use crate::{
     chunk::Chunk,
     forest::{self, ChunkId},
-    indirect::{Child, NodeView},
+    indirect::{Child, NavChunk, NodeView},
     indirect_node::{IndirectChunk, IndirectNode},
     nav::{self, Resolver},
     node_id::{HasId, NodeId},
     tree::{Label, NodeNav, ParentInfo},
-    uniform_chunk::{ChunkIterator, UniformChunk, UniformChunkNode},
+    uniform_chunk::{ChunkIterator, UniformChunkNode},
 };
-
-/// Tree data, stored in the forest, keyed by the first id in the chunk.
-#[derive(Clone, PartialEq)]
-pub enum NavChunk {
-    IndirectNode(IndirectChunk),
-    UniformChunk(UniformChunk),
-}
 
 impl<'a> Chunk for &'a NavChunk {
     type View = NodeView<'a>;
     type Child = Child<'a>;
     fn get(&self, first_id: NodeId, id: NodeId) -> Option<NodeView<'a>> {
         match self {
-            NavChunk::IndirectNode(node) => node.get(first_id, id).map(NodeView::Indirect),
-            NavChunk::UniformChunk(c) => c.get(first_id, id).map(NodeView::Uniform),
+            NavChunk::Indirect(node) => node.get(first_id, id).map(NodeView::Indirect),
+            NavChunk::Uniform(c) => c.get(first_id, id).map(NodeView::Uniform),
         }
     }
 }
@@ -61,13 +54,13 @@ impl<'a> Resolver<NodeView<'a>> for &'a Forest {
     fn expand(&self, chunk: Self::ChunkId) -> Self::Iter {
         match chunk {
             Child::Indirect(id) => match self.find_nodes(id).unwrap() {
-                NavChunk::IndirectNode(basic) => {
+                NavChunk::Indirect(basic) => {
                     Expander::IndirectView(NodeView::Indirect(IndirectNode {
                         node: basic,
                         id: id.0,
                     }))
                 }
-                NavChunk::UniformChunk(chunk) => {
+                NavChunk::Uniform(chunk) => {
                     Expander::UniformChunkNode(ChunkIterator::View(UniformChunkNode {
                         view: chunk.view(id.0),
                         offset: 0,
@@ -86,7 +79,7 @@ impl<'a> Resolver<NodeView<'a>> for &'a Forest {
                 let id = chunk.get_id();
                 let (chunk_id, chunk) = self.find_nodes_from_node(id).unwrap();
                 match chunk {
-                    NavChunk::UniformChunk(c) => {
+                    NavChunk::Uniform(c) => {
                         let info = c.schema.lookup_schema(chunk_id.0, id).unwrap();
                         let parent = match info.parent.parent {
                             Some(x) => x,
@@ -125,15 +118,15 @@ impl<'a> NodeNav<ChunkId> for &'a NavChunk {
 
     fn get_traits(&self) -> Self::TLabels {
         match self {
-            NavChunk::IndirectNode(s) => LabelIterator::Single(s.get_traits()),
-            NavChunk::UniformChunk(_) => LabelIterator::Empty,
+            NavChunk::Indirect(s) => LabelIterator::Single(s.get_traits()),
+            NavChunk::Uniform(_) => LabelIterator::Empty,
         }
     }
 
     fn get_trait(&self, label: Label) -> Self::TTraitChildren {
         match self {
-            NavChunk::IndirectNode(s) => s.get_trait(label),
-            NavChunk::UniformChunk(_) => IndirectChunk::empty_trait(),
+            NavChunk::Indirect(s) => s.get_trait(label),
+            NavChunk::Uniform(_) => IndirectChunk::empty_trait(),
         }
     }
 }
@@ -164,7 +157,7 @@ mod tests {
         let mut forest = Forest::new();
         forest.insert(
             ChunkId(NodeId(5)),
-            NavChunk::IndirectNode(IndirectChunk {
+            NavChunk::Indirect(IndirectChunk {
                 def: Def(1),
                 payload: None,
                 traits: im_rc::HashMap::default(),

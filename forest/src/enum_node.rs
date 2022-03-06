@@ -80,6 +80,12 @@ macro_rules! fromMembers {
                 )*}
             }
         }
+
+         /// Tree data, stored in the forest, keyed by the first id in the chunk.
+         #[derive(Clone, PartialEq)]
+        pub enum NavChunk {$(
+            $name($chunk),
+        )*}
     }
 }
 
