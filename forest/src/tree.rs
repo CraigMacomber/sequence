@@ -28,7 +28,7 @@ pub trait NodeData {
     fn get_payload(&self) -> Option<ImSlice>;
 }
 
-pub trait Node<TChild>: NodeNav<TChild> + NodeData {}
+pub trait Node<TChild = Self>: NodeNav<TChild> + NodeData {}
 
 impl<TChild, TNode: NodeData + NodeNav<TChild>> Node<TChild> for TNode {}
 

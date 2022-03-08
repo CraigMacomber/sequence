@@ -25,7 +25,11 @@ pub struct Forest<TChunk> {
     parent_data: RefCell<ImHashMap<ChunkId, ParentInfo<ChunkId>>>,
 }
 
-impl<TNodes> Forest<TNodes> {
+impl<TChunk> Forest<TChunk>
+where
+    TChunk: Clone + PartialEq<TChunk>,
+    for<'a> &'a TChunk: Chunk,
+{
     pub fn new() -> Self {
         Forest {
             map: im_rc::OrdMap::default(),
@@ -34,20 +38,15 @@ impl<TNodes> Forest<TNodes> {
         }
     }
 
-    pub fn find_nodes(&self, id: ChunkId) -> Option<&TNodes> {
+    pub fn find_nodes(&self, id: ChunkId) -> Option<&TChunk> {
         self.map.get(&id)
     }
 
     /// If there is an owning nodes for id, this returns it, but it may also return non owning nodes
-    pub fn find_nodes_from_node(&self, id: NodeId) -> Option<(&ChunkId, &TNodes)> {
+    pub fn find_nodes_from_node(&self, id: NodeId) -> Option<(&ChunkId, &TChunk)> {
         self.map.get_prev(&ChunkId(id))
     }
-}
 
-impl<TChunk> Forest<TChunk>
-where
-    TChunk: Clone,
-{
     pub fn find_nodes_mut(&mut self, id: ChunkId) -> Option<&mut TChunk> {
         self.map.get_mut(&id)
     }
@@ -61,25 +60,14 @@ where
     pub fn entry(&mut self, id: ChunkId) -> im_rc::ordmap::Entry<ChunkId, TChunk> {
         self.map.entry(id)
     }
-}
 
-impl<TChunk> Forest<TChunk>
-where
-    for<'a> &'a TChunk: Chunk,
-{
     pub fn find_node(&self, id: NodeId) -> Option<<&TChunk as Chunk>::View> {
         match self.map.get_prev(&ChunkId(id)) {
             Some((chunk, v)) => v.get(chunk.0, id),
             None => None,
         }
     }
-}
 
-impl<TChunk> Forest<TChunk>
-where
-    TChunk: PartialEq<TChunk>,
-    for<'a> &'a TChunk: NodeNav<ChunkId> + Chunk,
-{
     pub fn get_parent_data(&self) -> Ref<ImHashMap<ChunkId, ParentInfo<ChunkId>>> {
         {
             let mut parent_data = self.parent_data.borrow_mut();

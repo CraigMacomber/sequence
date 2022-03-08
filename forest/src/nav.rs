@@ -7,10 +7,14 @@ use crate::{
 
 /// Chunk resolver
 pub trait Resolver<Node>: Copy {
-    type ChunkId;
+    type Child;
     type Iter: Iterator<Item = Node>;
-    fn expand(&self, chunk: Self::ChunkId) -> Self::Iter;
+    fn expand(&self, chunk: Self::Child) -> Self::Iter;
     fn get_parent(&self, node: &Node) -> Option<ParentInfo<Node>>;
+}
+
+pub trait WithParent: Sized {
+    fn parent(&self) -> Option<ParentInfo<Self>>;
 }
 
 #[derive(Clone)]
@@ -19,16 +23,18 @@ pub struct Nav<R, TNode> {
     view: TNode,
 }
 
-impl<R, TNode> Nav<R, TNode>
+impl<R, TNode> Nav<R, TNode> {
+    pub fn new(resolver: R, view: TNode) -> Self {
+        Nav { resolver, view }
+    }
+}
+
+impl<R, TNode> WithParent for Nav<R, TNode>
 where
     R: Resolver<TNode>,
     TNode: HasId,
 {
-    pub fn new(resolver: R, view: TNode) -> Self {
-        Nav { resolver, view }
-    }
-
-    pub fn parent(&self) -> Option<ParentInfo<Self>> {
+    fn parent(&self) -> Option<ParentInfo<Self>> {
         self.resolver.get_parent(&self.view).map(|p| ParentInfo {
             node: Self::new(self.resolver, p.node),
             label: p.label,
@@ -45,17 +51,17 @@ impl<R, TNode: HasId> HasId for Nav<R, TNode> {
 pub struct TraitNav<R, TNode>
 where
     R: Resolver<TNode>,
-    TNode: NodeNav<<R as Resolver<TNode>>::ChunkId>,
+    TNode: NodeNav<<R as Resolver<TNode>>::Child>,
 {
     resolver: R,
-    view: <TNode as NodeNav<<R as Resolver<TNode>>::ChunkId>>::TTraitChildren,
+    view: <TNode as NodeNav<<R as Resolver<TNode>>::Child>>::TTraitChildren,
     pending: Option<<R as Resolver<TNode>>::Iter>,
 }
 
 impl<R, TNode> NodeNav<Nav<R, TNode>> for Nav<R, TNode>
 where
     R: Resolver<TNode>,
-    TNode: NodeNav<<R as Resolver<TNode>>::ChunkId>,
+    TNode: NodeNav<<R as Resolver<TNode>>::Child>,
 {
     type TTraitChildren = TraitNav<R, TNode>;
     type TLabels = TNode::TLabels;
@@ -90,7 +96,7 @@ where
 impl<R, TNode> Iterator for TraitNav<R, TNode>
 where
     R: Resolver<TNode>,
-    TNode: NodeNav<<R as Resolver<TNode>>::ChunkId>,
+    TNode: NodeNav<<R as Resolver<TNode>>::Child>,
 {
     type Item = Nav<R, TNode>;
 

@@ -301,6 +301,7 @@ pub fn walk_direct_all(forest: &Forest, id: ChunkId) -> usize {
 mod tests {
     use super::*;
     use crate::indirect::enum_chunk;
+    use crate::nav::{Nav, WithParent};
     use crate::node_id::HasId;
     use crate::tree::NodeNav;
 
@@ -414,7 +415,7 @@ mod tests {
         check_parents(nav);
     }
 
-    pub fn check_parents(n: Nav) {
+    pub fn check_parents(n: impl WithParent + Node + HasId) {
         for t in n.get_traits() {
             for c in n.get_trait(t) {
                 let p = c.parent().unwrap();

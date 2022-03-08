@@ -1,4 +1,4 @@
-//! Hookup the [IndirectNode] and [UniformChunk] to [Nav] using [Forest] as the [Resolver].
+//! Hookup [enum_chunk] to [nav] using [Forest] as the [Resolver].
 
 use crate::{
     chunk::{Chunk, ChunkId},
@@ -13,11 +13,11 @@ use crate::{
 pub type Forest = forest::Forest<enum_chunk::Chunk>;
 
 impl<'a> Resolver<enum_chunk::Node<'a>> for &'a Forest {
-    type ChunkId = enum_chunk::Child<'a>;
+    type Child = enum_chunk::Child<'a>;
 
     type Iter = enum_chunk::Expander<'a>;
 
-    fn expand(&self, chunk: Self::ChunkId) -> Self::Iter {
+    fn expand(&self, chunk: Self::Child) -> Self::Iter {
         match chunk {
             enum_chunk::Child::Indirect(id) => {
                 self.find_nodes(id).unwrap().top_level_nodes(id.0).into()
@@ -60,11 +60,15 @@ impl<'a> Resolver<enum_chunk::Node<'a>> for &'a Forest {
     }
 }
 
-pub type Nav<'a> = nav::Nav<&'a Forest, enum_chunk::Node<'a>>;
-
-impl Forest {
-    pub fn nav_from(&self, id: NodeId) -> Option<Nav> {
-        self.find_node(id).map(|view| Nav::new(self, view))
+impl<TChunk> forest::Forest<TChunk>
+where
+    TChunk: Clone + PartialEq<TChunk>,
+    for<'a> &'a TChunk: Chunk,
+    for<'a> &'a Self: Resolver<<&'a TChunk as Chunk>::View>,
+{
+    pub fn nav_from(&self, id: NodeId) -> Option<nav::Nav<&Self, <&TChunk as Chunk>::View>> {
+        self.find_node(id)
+            .map(|view| nav::Nav::<&Self, <&TChunk as Chunk>::View>::new(self, view))
     }
 }
 
