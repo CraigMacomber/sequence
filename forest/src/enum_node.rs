@@ -129,6 +129,54 @@ macro_rules! fromMembers {
                     )*}
                 }
             }
+
+            /// For parent info: Allow viewing the tree of chunks as Node.
+            impl<'a> crate::tree::NodeNav<crate::chunk::ChunkId> for &'a Chunk {
+                type TTraitChildren = ChunkTraitIterator<'a>;
+                type TLabels = ChunkLabelIterator<'a>;
+
+                fn get_traits(&self) -> Self::TLabels {
+                    match self {$(
+                        Chunk::$name(s) => s.get_traits().into(),
+                    )*}
+                }
+
+                fn get_trait(&self, label: crate::tree::Label) -> Self::TTraitChildren {
+                    match self {$(
+                        Chunk::$name(s) => s.get_trait(label).into(),
+                    )*}
+                }
+            }
+
+            #[derive(::derive_more::From)]
+            pub enum ChunkLabelIterator<'a> {$(
+                $name(<&'a $chunk as crate::tree::NodeNav<crate::chunk::ChunkId>>::TLabels),
+            )*}
+
+            #[derive(::derive_more::From)]
+            pub enum ChunkTraitIterator<'a> {$(
+                $name(<&'a $chunk as crate::tree::NodeNav<crate::chunk::ChunkId>>::TTraitChildren),
+            )*}
+
+            impl<'a> Iterator for ChunkLabelIterator<'a> {
+                type Item = crate::tree::Label;
+
+                fn next(&mut self) -> Option<Self::Item> {
+                    match self {$(
+                        ChunkLabelIterator::$name(i) => i.next(),
+                    )*}
+                }
+            }
+
+            impl<'a> Iterator for ChunkTraitIterator<'a> {
+                type Item = crate::chunk::ChunkId;
+
+                fn next(&mut self) -> Option<Self::Item> {
+                    match self {$(
+                        ChunkTraitIterator::$name(i) => i.next(),
+                    )*}
+                }
+            }
         }
     }
 }

@@ -1,15 +1,18 @@
-//! Sequence of trees with identical schema and sequential ids (depth first pre-order).
-//! Owns the content. Compressed (one copy of schema, rest as blob)
-
-use std::{iter::Cloned, rc::Rc, usize};
+use std::{
+    iter::{empty, Cloned, Empty},
+    rc::Rc,
+    usize,
+};
 
 use crate::{
-    chunk::Chunk,
+    chunk::{Chunk, ChunkId},
     node_id::{HasId, IdOffset, NodeId},
     tree::{Def, Label, NodeData, NodeNav},
     util::{slice_with_length, ImSlice},
 };
 
+/// Sequence of trees with identical schema and sequential ids (depth first pre-order).
+/// Owns the content. Compressed (one copy of schema, rest as blob)
 #[derive(Clone)]
 pub struct UniformChunk {
     pub data: Box<im_rc::Vector<u8>>,
@@ -129,6 +132,7 @@ pub struct OffsetSchema {
 
 // Views
 
+/// Info about part of a chunk.
 #[derive(Clone)]
 pub struct ChunkInfo<'a> {
     first_id: NodeId,
@@ -164,6 +168,21 @@ impl<'a> Chunk for &'a UniformChunk {
             view: self.view(id),
             offset: 0,
         })
+    }
+}
+
+/// For parent info: Allow viewing the tree of chunks as Node.
+/// Since this chunk is leaf only, returns Empty for everything.
+impl<'a> NodeNav<ChunkId> for &'a UniformChunk {
+    type TTraitChildren = Empty<ChunkId>;
+    type TLabels = Empty<Label>;
+
+    fn get_traits(&self) -> Self::TLabels {
+        empty()
+    }
+
+    fn get_trait(&self, _label: Label) -> Self::TTraitChildren {
+        empty()
     }
 }
 

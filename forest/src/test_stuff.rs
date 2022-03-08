@@ -1,5 +1,5 @@
 use crate::{
-    forest::ChunkId,
+    chunk::ChunkId,
     indirect::enum_chunk,
     indirect_nav::*,
     indirect_node::IndirectChunk,

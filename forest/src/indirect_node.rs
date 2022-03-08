@@ -5,8 +5,7 @@
 use std::{iter::Cloned, slice};
 
 use crate::{
-    chunk::Chunk,
-    forest::ChunkId,
+    chunk::{Chunk, ChunkId},
     node_id::{HasId, NodeId},
     tree::{Def, Label, NodeData, NodeNav},
     util::{ImHashMap, ImSlice},

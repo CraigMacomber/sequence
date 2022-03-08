@@ -2,13 +2,20 @@
 
 use crate::{
     node_id::{HasId, NodeId},
-    tree::Node,
+    tree::{Node, NodeNav},
 };
+
+/// Id under which a Chunk is stored.
+/// Must be equal to or precede all [NodeId]s present in the chunk.
+#[derive(Ord, PartialOrd, Eq, PartialEq, Clone, Copy, Hash)]
+pub struct ChunkId(pub NodeId);
 
 /// A `Chunk` of a Tree.
 /// Contains 0 or more nodes, all of which must have `NodeId` between (inclusive) some `first_id` and some `max_id`.
 /// No chunk within the same forest can have a range of ids that overlaps with any other.
-pub trait Chunk: Clone + PartialEq {
+///
+/// NodeNav<ChunkId> is used to record chunk level parentage for parent lookup.
+pub trait Chunk: Clone + PartialEq + NodeNav<ChunkId> {
     /// The representation of Nodes in this Chunk.
     type View: Node<Self::Child> + HasId;
     type Child;

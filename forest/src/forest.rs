@@ -7,16 +7,12 @@
 use std::cell::{Ref, RefCell};
 
 use crate::{
-    chunk::Chunk,
+    chunk::{Chunk, ChunkId},
     node_id::NodeId,
     tree::{NodeNav, ParentInfo},
     util::ImHashMap,
 };
 use im_rc::ordmap::DiffItem;
-
-// Chunk or BasicNode
-#[derive(Ord, PartialOrd, Eq, PartialEq, Clone, Copy, Hash)]
-pub struct ChunkId(pub NodeId);
 
 // Chunks added to forest must have non-overlapping ranges of Ids.
 #[derive(Clone, Default)]

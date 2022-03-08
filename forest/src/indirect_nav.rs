@@ -1,13 +1,12 @@
 //! Hookup the [IndirectNode] and [UniformChunk] to [Nav] using [Forest] as the [Resolver].
 
 use crate::{
-    chunk::Chunk,
-    forest::{self, ChunkId},
+    chunk::{Chunk, ChunkId},
+    forest,
     indirect::enum_chunk,
-    indirect_node::{IndirectChunk, IndirectNode},
     nav::{self, Resolver},
     node_id::{HasId, NodeId},
-    tree::{Label, NodeNav, ParentInfo},
+    tree::ParentInfo,
     uniform_chunk::ChunkIterator,
 };
 
@@ -20,10 +19,9 @@ impl<'a> Resolver<enum_chunk::Node<'a>> for &'a Forest {
 
     fn expand(&self, chunk: Self::ChunkId) -> Self::Iter {
         match chunk {
-            enum_chunk::Child::Indirect(id) => match self.find_nodes(id).unwrap() {
-                enum_chunk::Chunk::Indirect(chunk) => chunk.top_level_nodes(id.0).into(),
-                enum_chunk::Chunk::Uniform(chunk) => chunk.top_level_nodes(id.0).into(),
-            },
+            enum_chunk::Child::Indirect(id) => {
+                self.find_nodes(id).unwrap().top_level_nodes(id.0).into()
+            }
             enum_chunk::Child::Uniform(chunk) => {
                 enum_chunk::Expander::Uniform(ChunkIterator::View(chunk))
             }
@@ -36,6 +34,8 @@ impl<'a> Resolver<enum_chunk::Node<'a>> for &'a Forest {
             enum_chunk::Node::Uniform(chunk) => {
                 // TODO: Performance: maybe avoid id lookup then node look up from id below?
                 let id = chunk.get_id();
+                // Currently UniformNodes don't store a reference to the UniformChunk they are in (instead just the parts they need).
+                // Since we need to actual root schema to do the parent lookup, recover the actual chunk from the Forest:
                 let (chunk_id, chunk) = self.find_nodes_from_node(id).unwrap();
                 match chunk {
                     enum_chunk::Chunk::Uniform(c) => {
@@ -68,48 +68,10 @@ impl Forest {
     }
 }
 
-/// For parent info: Allow viewing the tree of chunks as Node
-/// TODO: maybe there are other uses for this? Might be able to simplify code elsewhere.
-
-impl<'a> NodeNav<ChunkId> for &'a enum_chunk::Chunk {
-    type TTraitChildren = <IndirectNode<'a> as NodeNav<ChunkId>>::TTraitChildren;
-    type TLabels = LabelIterator<'a>;
-
-    fn get_traits(&self) -> Self::TLabels {
-        match self {
-            enum_chunk::Chunk::Indirect(s) => LabelIterator::Single(s.get_traits()),
-            enum_chunk::Chunk::Uniform(_) => LabelIterator::Empty,
-        }
-    }
-
-    fn get_trait(&self, label: Label) -> Self::TTraitChildren {
-        match self {
-            enum_chunk::Chunk::Indirect(s) => s.get_trait(label),
-            enum_chunk::Chunk::Uniform(_) => IndirectChunk::empty_trait(),
-        }
-    }
-}
-
-pub enum LabelIterator<'a> {
-    Single(<IndirectNode<'a> as NodeNav<ChunkId>>::TLabels),
-    Empty,
-}
-
-impl<'a> Iterator for LabelIterator<'a> {
-    type Item = Label;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            LabelIterator::Single(ref mut s) => s.next(),
-            LabelIterator::Empty => None,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tree::Def;
+    use crate::{indirect_node::IndirectChunk, tree::Def};
 
     #[test]
     fn it_works() {
