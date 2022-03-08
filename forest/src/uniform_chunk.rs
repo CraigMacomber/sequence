@@ -139,6 +139,7 @@ pub struct ChunkInfo<'a> {
 impl<'a> Chunk for &'a UniformChunk {
     type View = UniformChunkNode<'a>;
     type Child = UniformChunkNode<'a>;
+    type Expander = ChunkIterator<'a>;
     fn get(&self, first_id: NodeId, id: NodeId) -> Option<UniformChunkNode<'a>> {
         match self.schema.lookup_schema(first_id, id) {
             Some(info) => {
@@ -156,6 +157,13 @@ impl<'a> Chunk for &'a UniformChunk {
             }
             None => None,
         }
+    }
+
+    fn top_level_nodes(&self, id: NodeId) -> Self::Expander {
+        ChunkIterator::View(UniformChunkNode {
+            view: self.view(id),
+            offset: 0,
+        })
     }
 }
 

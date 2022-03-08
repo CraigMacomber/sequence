@@ -15,6 +15,7 @@ num-integer = "0.1.44"
 rand = "0.8.5"
 ahash = "0.7.6"
 derive_more = "0.99.17"
+macro_rules_attribute = "0.0.2"
 
 [dev-dependencies]
 criterion = "0.3.5"

@@ -2,7 +2,7 @@
 //!
 //! Trees are stored as map from Id to Chunk, where a chunk is a collection of nodes within an id range (stored under the first id in the range).
 //!
-//! This is used by [crate::indirect_nav] to store and lookup [crate::indirect_nav::NavChunk]s.
+//! This is used by [crate::indirect_nav] to store and lookup [crate::indirect_nav::EnumChunk]s.
 
 use std::cell::{Ref, RefCell};
 

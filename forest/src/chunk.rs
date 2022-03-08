@@ -12,9 +12,12 @@ pub trait Chunk: Clone + PartialEq {
     /// The representation of Nodes in this Chunk.
     type View: Node<Self::Child> + HasId;
     type Child;
+    type Expander: Iterator<Item = Self::View>;
 
     /// gets an node with an id owned by this chunk
     fn get(&self, first_id: NodeId, id: NodeId) -> Option<Self::View>;
+
+    fn top_level_nodes(&self, first_id: NodeId) -> Self::Expander;
 }
 
 // /// A chunk that uses all ids in a range.

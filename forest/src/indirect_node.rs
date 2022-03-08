@@ -63,12 +63,18 @@ pub struct IndirectNode<'a> {
 impl<'a> Chunk for &'a IndirectChunk {
     type View = IndirectNode<'a>;
     type Child = ChunkId;
+    type Expander = std::iter::Once<Self::View>;
+
     fn get(&self, first_id: NodeId, id: NodeId) -> Option<IndirectNode<'a>> {
         if first_id == id {
             Some(IndirectNode { node: self, id })
         } else {
             None
         }
+    }
+
+    fn top_level_nodes(&self, id: NodeId) -> Self::Expander {
+        std::iter::once(IndirectNode { node: self, id })
     }
 }
 

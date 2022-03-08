@@ -83,9 +83,32 @@ macro_rules! fromMembers {
 
          /// Tree data, stored in the forest, keyed by the first id in the chunk.
          #[derive(Clone, PartialEq)]
-        pub enum NavChunk {$(
+        pub enum EnumChunk {$(
             $name($chunk),
         )*}
+
+        #[derive(::derive_more::From)]
+        pub enum Expander<'a>
+        {$(
+            $name(<&'a $chunk as crate::chunk::Chunk>::Expander),
+        )*}
+
+        impl<'a> crate::chunk::Chunk for &'a EnumChunk {
+            type View = NodeView<'a>;
+            type Child = Child<'a>;
+            type Expander = Expander<'a>;
+            fn get(&self, first_id: crate::node_id::NodeId, id: crate::node_id::NodeId) -> Option<NodeView<'a>> {
+                match self {$(
+                    EnumChunk::$name(node) => node.get(first_id, id).map(NodeView::$name),
+                )*}
+            }
+
+            fn top_level_nodes(&self, id: crate::node_id::NodeId) -> Self::Expander {
+                match self {$(
+                    EnumChunk::$name(c) => c.top_level_nodes(id).into(),
+                )*}
+            }
+        }
     }
 }
 

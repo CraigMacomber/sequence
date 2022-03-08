@@ -31,6 +31,8 @@ use tree::ParentInfo;
 extern crate derive_more;
 extern crate im_rc;
 extern crate num_integer;
+#[macro_use]
+extern crate macro_rules_attribute;
 
 mod chunk;
 mod example_node;
@@ -118,7 +120,7 @@ impl Forest {
     pub fn update_chunk(
         &mut self,
         id: forest::ChunkId,
-    ) -> im_rc::ordmap::Entry<forest::ChunkId, indirect::NavChunk> {
+    ) -> im_rc::ordmap::Entry<forest::ChunkId, indirect::EnumChunk> {
         self.forest.entry(id)
     }
 
