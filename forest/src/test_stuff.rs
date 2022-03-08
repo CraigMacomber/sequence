@@ -1,6 +1,6 @@
 use crate::{
     forest::ChunkId,
-    indirect::EnumChunk,
+    indirect::enum_chunk,
     indirect_nav::*,
     indirect_node::IndirectChunk,
     node_id::{IdOffset, NodeId},
@@ -52,22 +52,24 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
 
     forest.insert(
         ChunkId(root_id),
-        EnumChunk::Indirect(IndirectChunk {
+        IndirectChunk {
             def,
             payload: None,
             traits: im_rc::HashMap::default(),
-        }),
+        }
+        .into(),
     );
 
     for _ in 1..size {
         let id = new_node_id();
         forest.insert(
             ChunkId(id),
-            EnumChunk::Indirect(IndirectChunk {
+            IndirectChunk {
                 def,
                 payload: None, //Some(im_rc::Vector::from_iter([1u8].iter().cloned()).into()),
                 traits: im_rc::HashMap::default(),
-            }),
+            }
+            .into(),
         );
 
         let parent_index = rng.borrow_mut().gen_range(0..nodes.len());
@@ -76,7 +78,7 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
         let parent = forest.find_nodes_mut(ChunkId(parent_id)).unwrap();
 
         match parent {
-            EnumChunk::Indirect(basic) => {
+            enum_chunk::Chunk::Indirect(basic) => {
                 basic
                     .traits
                     .entry(label)
@@ -157,7 +159,7 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
             debug_assert_eq!(data.len(), chunk_size * 4);
             forest.insert(
                 ChunkId(id),
-                EnumChunk::Uniform(UniformChunk {
+                enum_chunk::Chunk::Uniform(UniformChunk {
                     schema: chunk_schema.clone(),
                     data: data.into(),
                 }),
@@ -169,7 +171,7 @@ pub fn big_tree(size: usize, chunks: usize, chunk_size: usize) -> (Forest, NodeI
             let parent = forest.find_nodes_mut(ChunkId(parent_id)).unwrap();
 
             match parent {
-                EnumChunk::Indirect(basic) => {
+                enum_chunk::Chunk::Indirect(basic) => {
                     basic
                         .traits
                         .entry(label)
@@ -200,11 +202,12 @@ pub fn simple_tree() -> (Forest, NodeId) {
 
     forest.insert(
         ChunkId(root_id),
-        EnumChunk::Indirect(IndirectChunk {
+        IndirectChunk {
             def,
             payload: None,
             traits: im_rc::HashMap::default(),
-        }),
+        }
+        .into(),
     );
 
     // color channel schema
@@ -247,7 +250,7 @@ pub fn simple_tree() -> (Forest, NodeId) {
             .collect();
         forest.insert(
             ChunkId(id),
-            EnumChunk::Uniform(UniformChunk {
+            enum_chunk::Chunk::Uniform(UniformChunk {
                 schema: chunk_schema.clone(),
                 data: data.into(),
             }),
@@ -259,7 +262,7 @@ pub fn simple_tree() -> (Forest, NodeId) {
         let parent = forest.find_nodes_mut(ChunkId(parent_id)).unwrap();
 
         match parent {
-            EnumChunk::Indirect(basic) => {
+            enum_chunk::Chunk::Indirect(basic) => {
                 basic
                     .traits
                     .entry(label)
@@ -297,7 +300,7 @@ pub fn walk_direct_all(forest: &Forest, id: ChunkId) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::indirect::EnumChunk;
+    use crate::indirect::enum_chunk;
     use crate::node_id::HasId;
     use crate::tree::NodeNav;
 
@@ -401,7 +404,7 @@ mod tests {
         let data: im_rc::Vector<u8> = [1u8, 2, 3, 4].iter().cloned().collect();
         forest.insert(
             ChunkId(id),
-            EnumChunk::Uniform(UniformChunk {
+            enum_chunk::Chunk::Uniform(UniformChunk {
                 schema: chunk_schema.clone(),
                 data: data.into(),
             }),
@@ -460,7 +463,7 @@ mod tests {
             "Chunk:{} BasicNode:{} EnumChunk:{}, ahash ImMap:{}, Default ImMap:{}, stdMap:{}",
             std::mem::size_of::<UniformChunk>(),
             std::mem::size_of::<IndirectChunk>(),
-            std::mem::size_of::<EnumChunk>(),
+            std::mem::size_of::<enum_chunk::Chunk>(),
             std::mem::size_of::<im_rc::HashMap<Label, Vec<ChunkId>, ahash::RandomState>>(),
             std::mem::size_of::<im_rc::HashMap<Label, Vec<ChunkId>>>(),
             std::mem::size_of::<std::collections::HashMap<Label, Vec<ChunkId>>>(),

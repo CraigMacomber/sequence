@@ -15,4 +15,9 @@ use crate::{indirect_node::IndirectChunk, uniform_chunk::UniformChunk};
 // TODO: these types are write optimized. Consider supporting read/size optimized types (ex: using byte array instead of im's Vector)
 // TODO: maybe chunks referencing external subtrees (so they can have child references like payloads)
 
-crate::enum_node::fromMembers![(Indirect, IndirectChunk), (Uniform, UniformChunk)];
+/// Tree data, stored in the forest, keyed by the first id in the chunk.
+#[apply(crate::enum_node::fromMembers!)]
+pub enum enum_chunk {
+    Indirect(IndirectChunk),
+    Uniform(UniformChunk),
+}

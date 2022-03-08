@@ -70,7 +70,7 @@ struct ShapeLibrary {
 // Maybe do copy on write instead?
 
 impl Forest {
-    pub fn get_tree(&self, id: node_id::NodeId) -> Option<indirect::NodeView> {
+    pub fn get_tree(&self, id: node_id::NodeId) -> Option<indirect::enum_chunk::Node> {
         self.forest.find_node(id)
     }
 
@@ -88,7 +88,7 @@ impl Forest {
     pub fn get_parent(
         &self,
         id: node_id::NodeId,
-    ) -> Option<Option<ParentInfo<indirect::NodeView>>> {
+    ) -> Option<Option<ParentInfo<indirect::enum_chunk::Node>>> {
         let info = (&(self.forest)).get_parent(self.get_tree(id).as_ref()?);
         Some(info)
         // todo!("return better value for missing node vs root")
@@ -120,7 +120,7 @@ impl Forest {
     pub fn update_chunk(
         &mut self,
         id: forest::ChunkId,
-    ) -> im_rc::ordmap::Entry<forest::ChunkId, indirect::EnumChunk> {
+    ) -> im_rc::ordmap::Entry<forest::ChunkId, indirect::enum_chunk::Chunk> {
         self.forest.entry(id)
     }
 

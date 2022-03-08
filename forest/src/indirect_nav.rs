@@ -3,7 +3,7 @@
 use crate::{
     chunk::Chunk,
     forest::{self, ChunkId},
-    indirect::{Child, EnumChunk, Expander, NodeView},
+    indirect::enum_chunk,
     indirect_node::{IndirectChunk, IndirectNode},
     nav::{self, Resolver},
     node_id::{HasId, NodeId},
@@ -11,43 +11,34 @@ use crate::{
     uniform_chunk::ChunkIterator,
 };
 
-pub type Forest = forest::Forest<EnumChunk>;
+pub type Forest = forest::Forest<enum_chunk::Chunk>;
 
-impl<'a> Iterator for Expander<'a> {
-    type Item = NodeView<'a>;
+impl<'a> Resolver<enum_chunk::Node<'a>> for &'a Forest {
+    type ChunkId = enum_chunk::Child<'a>;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            Expander::Uniform(ref mut c) => c.next().map(NodeView::Uniform),
-            Expander::Indirect(ref mut c) => c.next().map(NodeView::Indirect),
-        }
-    }
-}
-
-impl<'a> Resolver<NodeView<'a>> for &'a Forest {
-    type ChunkId = Child<'a>;
-
-    type Iter = Expander<'a>;
+    type Iter = enum_chunk::Expander<'a>;
 
     fn expand(&self, chunk: Self::ChunkId) -> Self::Iter {
         match chunk {
-            Child::Indirect(id) => match self.find_nodes(id).unwrap() {
-                EnumChunk::Indirect(chunk) => chunk.top_level_nodes(id.0).into(),
-                EnumChunk::Uniform(chunk) => chunk.top_level_nodes(id.0).into(),
+            enum_chunk::Child::Indirect(id) => match self.find_nodes(id).unwrap() {
+                enum_chunk::Chunk::Indirect(chunk) => chunk.top_level_nodes(id.0).into(),
+                enum_chunk::Chunk::Uniform(chunk) => chunk.top_level_nodes(id.0).into(),
             },
-            Child::Uniform(chunk) => Expander::Uniform(ChunkIterator::View(chunk)),
+            enum_chunk::Child::Uniform(chunk) => {
+                enum_chunk::Expander::Uniform(ChunkIterator::View(chunk))
+            }
         }
     }
 
-    fn get_parent(&self, node: &NodeView<'a>) -> Option<ParentInfo<NodeView<'a>>> {
+    fn get_parent(&self, node: &enum_chunk::Node<'a>) -> Option<ParentInfo<enum_chunk::Node<'a>>> {
         match node {
-            NodeView::Indirect(basic) => self.get_parent_from_chunk_id(ChunkId(basic.id)),
-            NodeView::Uniform(chunk) => {
+            enum_chunk::Node::Indirect(basic) => self.get_parent_from_chunk_id(ChunkId(basic.id)),
+            enum_chunk::Node::Uniform(chunk) => {
                 // TODO: Performance: maybe avoid id lookup then node look up from id below?
                 let id = chunk.get_id();
                 let (chunk_id, chunk) = self.find_nodes_from_node(id).unwrap();
                 match chunk {
-                    EnumChunk::Uniform(c) => {
+                    enum_chunk::Chunk::Uniform(c) => {
                         let info = c.schema.lookup_schema(chunk_id.0, id).unwrap();
                         let parent = match info.parent.parent {
                             Some(x) => x,
@@ -56,7 +47,7 @@ impl<'a> Resolver<NodeView<'a>> for &'a Forest {
                             }
                         };
                         Some(ParentInfo {
-                            node: NodeView::Uniform(
+                            node: enum_chunk::Node::Uniform(
                                 c.get(chunk_id.0, chunk_id.0 + parent.0).unwrap(),
                             ),
                             label: parent.1,
@@ -69,7 +60,7 @@ impl<'a> Resolver<NodeView<'a>> for &'a Forest {
     }
 }
 
-pub type Nav<'a> = nav::Nav<&'a Forest, NodeView<'a>>;
+pub type Nav<'a> = nav::Nav<&'a Forest, enum_chunk::Node<'a>>;
 
 impl Forest {
     pub fn nav_from(&self, id: NodeId) -> Option<Nav> {
@@ -80,21 +71,21 @@ impl Forest {
 /// For parent info: Allow viewing the tree of chunks as Node
 /// TODO: maybe there are other uses for this? Might be able to simplify code elsewhere.
 
-impl<'a> NodeNav<ChunkId> for &'a EnumChunk {
+impl<'a> NodeNav<ChunkId> for &'a enum_chunk::Chunk {
     type TTraitChildren = <IndirectNode<'a> as NodeNav<ChunkId>>::TTraitChildren;
     type TLabels = LabelIterator<'a>;
 
     fn get_traits(&self) -> Self::TLabels {
         match self {
-            EnumChunk::Indirect(s) => LabelIterator::Single(s.get_traits()),
-            EnumChunk::Uniform(_) => LabelIterator::Empty,
+            enum_chunk::Chunk::Indirect(s) => LabelIterator::Single(s.get_traits()),
+            enum_chunk::Chunk::Uniform(_) => LabelIterator::Empty,
         }
     }
 
     fn get_trait(&self, label: Label) -> Self::TTraitChildren {
         match self {
-            EnumChunk::Indirect(s) => s.get_trait(label),
-            EnumChunk::Uniform(_) => IndirectChunk::empty_trait(),
+            enum_chunk::Chunk::Indirect(s) => s.get_trait(label),
+            enum_chunk::Chunk::Uniform(_) => IndirectChunk::empty_trait(),
         }
     }
 }
@@ -125,11 +116,12 @@ mod tests {
         let mut forest = Forest::new();
         forest.insert(
             ChunkId(NodeId(5)),
-            EnumChunk::Indirect(IndirectChunk {
+            IndirectChunk {
                 def: Def(1),
                 payload: None,
                 traits: im_rc::HashMap::default(),
-            }),
+            }
+            .into(),
         );
 
         let _n = forest.find_node(NodeId(5)).unwrap();
